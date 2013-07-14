@@ -151,7 +151,7 @@ def compute_N_cliques(maindir, cliques, N=10, output="cliques.pk"):
 def main():
     # Args parser
     parser = argparse.ArgumentParser(description=
-                "Evaluates the average rank and mean AP for the SHS")
+                "Computes various features from the SHS dataset")
     parser.add_argument("maindir", action="store",
                         help="/data directory")
     parser.add_argument("shsf", action="store",
