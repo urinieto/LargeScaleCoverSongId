@@ -3,6 +3,14 @@
 Binary task of cover song identification using the Millions Song Dataset 
 and the Second Hand Song dataset.
 
+It takes the Million Song Dataset path as an argument. 
+
+The list of queries to test must be located in:
+./SHS/list_500queries.txt
+
+The training set of the Second Hand Song dataset must be located in:
+./SHS/shs_dataset_train.txt
+
 References:
 Bertin-Mahieux, T., & Ellis, D. P. W. (2012). Large-Scale Cover Song 
 Recognition Using The 2D Fourier Transform Magnitude. In Proc. of the 13th 
@@ -109,8 +117,8 @@ def main():
     # Args parser
     parser = argparse.ArgumentParser(description=
                 "Evaluates the 500 binary queries from the SHS data set")
-    parser.add_argument("list500queries", action="store",
-                        help="usual queries from our cover papers")
+    parser.add_argument("msd_dir", action="store",
+                        help="Million Song Dataset main directory")
     parser.add_argument("-f", action="store", dest="features",
                         help="cPickle file containing the features.")
     parser.add_argument("-lda", action="store", dest="lda", default=None,
@@ -121,8 +129,8 @@ def main():
     # Track time
     start_time = time.time()
 
-    maindir = "MSD"
-    queriesf = args.list500queries
+    maindir = args.msd_dir
+    queriesf = "SHS/list_500queries.txt"
     shsf = "SHS/shs_dataset_train.txt"
     lda = args.lda
 
@@ -147,10 +155,10 @@ def main():
         lda = utils.load_pickle(args.lda)
 
     # to keep stats
-    cnt = 0
-    cnt_good = 0
+    results = [] 
 
-    # iterate over queries!
+    # iterate over queries
+    logger.info("Starting the binary task...")
     for triplet in queries:
         # get features
         #triplet_feats = map(lambda f: extract_feats(f, feats, track_ids, lda), 
@@ -165,20 +173,16 @@ def main():
         res2 = triplet_feats[0] - triplet_feats[2]
         res2 = np.sum(res2 * res2)
         if res1 < res2:
-            cnt_good += 1
+            results.append(1)
         else:
-            pass
-        # cnt
-        cnt += 1
-        if cnt >= 500:
-            break
+            results.append(0)
         # verbose
-        if cnt % 50 == 0:
+        if len(results) % 50 == 0:
             logger.info(' --- after %d queries, accuracy: %.3f' % \
-                            (cnt, 100. * cnt_good / cnt))
+                            (len(results), 100. * np.mean(results)))
     # done
-    logger.info('After %d queries, accuracy: %.4f' % (cnt,
-                                                100. * cnt_good / cnt))
+    logger.info('After %d queries, accuracy: %.4f' % (len(results),
+                                                100. * np.mean(results)))
     logger.info('Done! Took %.2f seconds' % (time.time() - start_time))
 
 if __name__ == '__main__':

@@ -29,63 +29,6 @@ def get_logger():
     """Returns the logger created for this project."""
     return logging.getLogger('coverSongs')
 
-def beatsync_segments( seg_starts, beats, pitches, total_dur, weight=False  ):
-    """Resamples the segments into beat-synchronous segments.
-    """
-    S = seg_starts.shape[0]
-    B = beats.shape[0]
-    b_idx = 0
-    beatsync = dict()
-    beatsync["pitches"] = np.zeros((B, 12))
-    beatsync["starts"] = np.zeros(B)
-
-    for b_idx in xrange(B):
-        # Current beat start and duration times
-        b_start = beats[b_idx]
-        try:
-            b_dur = beats[b_idx+1] - b_start
-        except IndexError:
-            b_dur = total_dur - b_start
-
-        # Find the start idx
-        try:
-            start_idx = np.argwhere( seg_starts < b_start )[-1][0]
-        except IndexError:
-            start_idx = 0
-
-        # Find the offset for the first segment
-        start_offset = b_start - seg_starts[start_idx]
-        assert start_offset >= 0
-
-        # Find the end idx
-        try:
-            end_idx = np.argwhere(
-                seg_starts < b_start + b_dur - start_offset)[-1][0]
-        except IndexError:
-            end_idx = 1
-
-        # Find the weight for the last segment
-        if weight:
-            end_offset = b_start + b_dur - start_offset - seg_starts[end_idx]
-            try:
-                w = end_offset / float(seg_starts[end_idx+1] - seg_starts[end_idx])
-            except IndexError:
-                w = end_offset / float(total_dur - seg_starts[end_idx])
-        else:
-            w = 1
-
-        # Merge pitches
-        beatsync["pitches"][b_idx,:] = merge_pitches(start_idx, end_idx,
-                                                     w, pitches )
-        beatsync["starts"][b_idx] = b_start - start_offset
-
-    # Normalize beat-sync chromas
-    if B > 0:
-        beatsync["pitches"] /= beatsync["pitches"].max(axis=1)[:,np.newaxis]
-
-    return beatsync
-
-
 def chroma_to_tonnetz( C ):
     """Transforms chromagram to Tonnetz (Harte, Sandler, 2006)."""
     N = C.shape[0]
