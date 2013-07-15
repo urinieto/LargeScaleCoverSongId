@@ -124,6 +124,10 @@ def main():
                         help="cPickle file containing the features.")
     parser.add_argument("-lda", action="store", dest="lda", default=None,
                         help="cPickle file containing the LDA transform.")
+    parser.add_argument("-pca", nargs=2, metavar=('f.pkl', 'n'), 
+                        default=("", 0),
+                        help="pca model saved in a pickle file, " \
+                        "use n dimensions")
     # Parse
     args = parser.parse_args()
 
@@ -134,11 +138,14 @@ def main():
     queriesf = "SHS/list_500queries.txt"
     shsf = "SHS/shs_dataset_train.txt"
     lda = args.lda
+    pcafile = args.pca[0]
+    pcadim = int(args.pca[1])
 
     # sanity cheks
-    assert os.path.isdir(maindir)
-    assert os.path.isfile(queriesf)
-    assert os.path.isfile(shsf)
+    utils.assert_file(maindir)
+    utils.assert_file(queriesf)
+    utils.assert_file(shsf)
+    utils.assert_file(pcafile)
 
     # read queries
     queries = read_query_file(queriesf)
@@ -151,6 +158,15 @@ def main():
 
     # read track ids
     #feats = utils.load_pickle(args.features)
+
+    # load pca
+    trainedpca = None
+    if pcafile != "":
+        f = open(pcafile, 'r')
+        trainedpca = cPickle.load(f)
+        f.close()
+        assert pcadim > 0
+        print 'trained pca loaded'
 
     if lda != None:
         lda = utils.load_pickle(args.lda)
@@ -168,6 +184,12 @@ def main():
         triplet_feats = map(lambda f: extract_feats_orig(f), filenames)
         if None in triplet_feats:
             continue
+        # apply pca?
+        if trainedpca:
+            triplet_feats = map(lambda feat: \
+                                trainedpca.apply_newdata(feat, ndims=pcadim),
+                                triplet_feats)
+            assert triplet_feats[np.random.randint(3)].shape[0] == pcadim
         # did we get it right?
         res1 = triplet_feats[0] - triplet_feats[1]
         res1 = np.sum(res1 * res1)
@@ -179,10 +201,10 @@ def main():
             results.append(0)
         # verbose
         if len(results) % 50 == 0:
-            logger.info(' --- after %d queries, accuracy: %.3f' % \
+            logger.info(' --- after %d queries, accuracy: %.1f %%' % \
                             (len(results), 100. * np.mean(results)))
     # done
-    logger.info('After %d queries, accuracy: %.4f' % (len(results),
+    logger.info('After %d queries, accuracy: %.1f %%' % (len(results),
                                                 100. * np.mean(results)))
     logger.info('Done! Took %.2f seconds' % (time.time() - start_time))
 
