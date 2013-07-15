@@ -149,7 +149,7 @@ def main():
 
     args = parser.parse_args()
     start_time = time.time()
-    maindir = "/Volumes/MyBook/datasets/MSD/uncompressedData"
+    maindir = "MSD"
     shsf = "SHS/shs_dataset_test.txt"
 
     # sanity cheks

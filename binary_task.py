@@ -22,8 +22,8 @@ Discriminative Projections for Large-Scale Cover Song Identification.
 In Proc. of the 14th International Society for Music Information Retrieval 
 Conference. Curitiba, Brazil.
 
-Author: Thierry Bertin-Mahieux (tb2332@columbia.edu)
-Modified by: Oriol Nieto (oriol@nyu.edu)
+Created by Thierry Bertin-Mahieux (tb2332@columbia.edu)
+Modified by Oriol Nieto (oriol@nyu.edu)
 """
 
 import argparse
@@ -39,10 +39,11 @@ import hdf5_getters as GETTERS
 import dan_tools
 import utils
 
-# Params, for Thierry's ISMIR paper
+# Thierry's original parameters for ISMIR paper
 WIN = 75
 PWR = 1.96
 
+# Set up logger
 logger = utils.configure_logger()
 
 def extract_feats(filename, feats, track_ids, lda=None):

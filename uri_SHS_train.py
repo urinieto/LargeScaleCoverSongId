@@ -3,15 +3,15 @@
 Test with meanAP and average rank
 """
 
-
-import os
-import sys
-import cPickle
-import pickle
-import numpy as np
 import argparse
+import cPickle
+import numpy as np
+import os
+import pickle
 from scipy.spatial import distance
+import sys
 import time
+
 # local stuff
 import pca
 import hdf5_getters as GETTERS
@@ -23,14 +23,18 @@ import pylab as plt
 from transforms import load_transform
 import analyze_stats as anst
 
-# params, for ICMR paper: 75 and 1.96
+# Thierry's original parameters for ISMIR paper
 WIN = 75
+PWR = 1.96
 PATCH_LEN = WIN*12
+
+# Set up logger
+logger = utils.configure_logger()
 
 def compute_feats(track_ids, maindir, d, lda_file=None, lda_n=0, codes=None, 
         ver=True):
     """Computes the features using the dictionary d. If it doesn't exist, 
-     computes them using TBM method."""
+     computes them using Thierry's method."""
     if d != "":
         fx = load_transform(d)
         K = int(d.split("_")[1].split("E")[1])
@@ -55,7 +59,7 @@ def compute_feats(track_ids, maindir, d, lda_file=None, lda_n=0, codes=None,
     #pca = utils.load_pickle("pca" + str(n_comp) + "_90000.pk")
     #lda200 = utils.load_pickle("lda200_24000.pk")
 
-    n_comp = lda_file[0].n_components
+    #n_comp = lda_file[0].n_components
 
     final_feats = np.ones((codes.shape[0],n_comp)) * np.nan
     for cnt, tid in enumerate(track_ids):
@@ -88,32 +92,23 @@ def compute_feats(track_ids, maindir, d, lda_file=None, lda_n=0, codes=None,
 
         if ver:
             if cnt % 50 == 1:
-                print "----Computing features %.1f%%" % (cnt/float(len(track_ids)) * 100)
+                logger.info("----Computing features %.1f%%" % \
+                            (cnt/float(len(track_ids)) * 100))
 
+    if d == "":
+        d = "thierry" # For saving purposes
+    
     # Save codes
     if compute_codes:
-        f = open("codes-" + os.path.basename(d) + ".pk", "w")
-        cPickle.dump(codes, f, protocol=1)
-        f.close()
+        utils.save_pickle(codes, "codes-" + os.path.basename(d) + ".pk")
 
     # Save features
-    f = open("feats-" + os.path.basename(d) + ".pk", "w")
-    cPickle.dump(final_feats, f, protocol=1)
-    f.close()
+    utils.save_pickle(final_feats, "feats-" + os.path.basename(d) + ".pk")
 
-    print "Features Computed"
+    logger.info("Features Computed")
     return final_feats
 
-def load_pickle(file):
-    """Gets the file from the cPickle file dictfile."""
-    f = open(file, 'r')
-    dict = cPickle.load(f)
-    f.close()
-    print "file %s loaded" % file
-    return dict
-
 def score(feats, clique_ids, lda_idx=0, stats_len=None, ver=True):
-    #stats = np.zeros(5236)
     if stats_len is None:
         stats = [np.inf]*len(feats)
     else:
@@ -133,10 +128,11 @@ def score(feats, clique_ids, lda_idx=0, stats_len=None, ver=True):
         q += 1
         if ver:
             if q % 400 == 0:
-                print 'After %d queries: average rank per track: %.2f, clique: %.2f, MAP: %.5f' \
+                logger.info('After %d queries: average rank per track: %.2f, '\
+                    'clique: %.2f, MAP: %.5f' \
                     % (q, anst.average_rank_per_track(stats),
                         anst.average_rank_per_clique(stats),
-                        anst.mean_average_precision(stats, n=len(feats)))
+                        anst.mean_average_precision(stats)))
 
     return stats
 
@@ -155,11 +151,12 @@ def main():
 
     args = parser.parse_args()
     start_time = time.time()
-    maindir = "SHSTrain/"
+    maindir = "MSD/"
     shsf = "SHS/shs_dataset_train.txt"
+    dictfile = args.dictfile
 
     # sanity cheks
-    utils.assert_file(args.dictfile)
+    utils.assert_file(dictfile)
     utils.assert_file(maindir)
     utils.assert_file(shsf)
 
@@ -167,42 +164,42 @@ def main():
     cliques, all_tracks = utils.read_shs_file(shsf)
     track_ids = all_tracks.keys()
     clique_ids = np.asarray(utils.compute_clique_idxs(track_ids, cliques))
-    print "Track ids and clique ids read"
+    logger.info("Track ids and clique ids read")
 
     # read LDA file
     lda_file = args.lda[0]
     if lda_file != None:
-        lda_file = load_pickle(lda_file)
-        print "LDA file read"
+        lda_file = utils.load_pickle(lda_file)
+        logger.info("LDA file read")
 
     # read codes file
     codesfile = args.codesfile
     if codesfile != None:
-        codesfile = load_pickle(codesfile)
-        print "Codes file read"
+        codesfile = utils.load_pickle(codesfile)
+        logger.info("Codes file read")
 
     # Compute features if needed
     if args.featfile == "":
-        feats = compute_feats(track_ids, maindir, args.dictfile,
+        feats = compute_feats(track_ids, maindir, dictfile,
             lda_file=lda_file, lda_n=int(args.lda[1]), codes=codesfile)
     else:  
-        feats = load_pickle(args.featfile)
+        feats = utils.load_pickle(args.featfile)
 
     # Scores
     feats, clique_ids, track_ids = utils.clean_feats(feats, clique_ids, track_ids)
     stats = score(feats, clique_ids)
 
-    f = open("stats-" + os.path.basename(args.dictfile), "w")
-    cPickle.dump(stats, f, protocol=1)
-    f.close()
+    # Save data
+    if didctfile == "":
+        dictfile = "thierry" # For saving purposes
+    utils.save_pickle(stats, "stats-" + os.path.basename(dictfile) + ".pk")
 
     # done
-    print 'DONE!'
-    print 'Average rank per track: %.2f, clique: %.2f, MAP: %.5f' \
+    logger.info('Average rank per track: %.2f, clique: %.2f, MAP: %.5f' \
                 % (anst.average_rank_per_track(stats),
                     anst.average_rank_per_clique(stats),
-                    anst.mean_average_precision(stats, n=len(feats)))
-    print "Took %.2f seconds" % (time.time() - start_time)
+                    anst.mean_average_precision(stats)))
+    logger.info("Done! Took %.2f seconds" % (time.time() - start_time))
 
 if __name__ == '__main__':
     main()

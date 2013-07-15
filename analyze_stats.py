@@ -1,13 +1,25 @@
-"""Analyzes the stats of a stats file.
+#!/usr/bin/env python
+"""Computes the result of a stats cPickle file.
 
-Created by Uri Nieto, 2013"""
+A stats cPickle file has the following format:
+
+- List of N elements, each representing a track.
+- Each position (or track) contains an np.array with the indeces
+    of the tracks that are covers of this current track
+    (note that these indeces will range from 0..N-1).
+
+The results this script computes are:
+- Mean Average Precision (MAP)
+- Average Rank per track
+- Average Rank per clique
+
+Created by Oriol Nieto (oriol@nyu.edu), 2013"""
 
 import argparse
 import cPickle
 import numpy as np
 import pylab as plt
 
-maindir = "SHSTrain"
 
 def read_cPickle(file):
     f = open(file, "r")
@@ -62,7 +74,7 @@ def precision_at_k(ranks, k):
     relevant = len(np.where(ranks <= k)[0])
     return relevant / float(k)
 
-def average_precision(stats, q, n):
+def average_precision(stats, q):
     #n = len(stats) # Number of retrieved documents
     try:
         nrel = len(stats[q]) # Number of relevant docs
@@ -74,11 +86,11 @@ def average_precision(stats, q, n):
         ap.append(pk)
     return np.sum(ap) / float(nrel)
 
-def mean_average_precision(stats, n):
+def mean_average_precision(stats):
     Q = len(stats) # Number of queries
     ma_p = []
     for q in xrange(Q):
-        ap = average_precision(stats, q, n)
+        ap = average_precision(stats, q)
         if np.isnan(ap):
             continue
         ma_p.append(ap)
@@ -107,13 +119,10 @@ def stat_differences(s1, s2):
     ar1 = get_average_rank(s1)
     ar2 = get_average_rank(s2)
 
-    print tr1
-    print tr2
-
     fig, ax = plt.subplots(3)
     max = 12000
-    print tr1[71], tr2[71]
-    print ar1[1977], ar2[1977] # Extreme case!
+    #print tr1[71], tr2[71]
+    #print ar1[1977], ar2[1977] # Extreme case!
     p1, = ax[0].plot(tr1[:max], 's', alpha=0.6)
     p2, = ax[0].plot(tr2[:max], 's', alpha=0.6)
     ax[0].set_title("Top Ranked")

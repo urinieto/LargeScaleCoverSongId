@@ -14,7 +14,6 @@ from sklearn.lda import LDA
 
 # local files
 import dan_tools
-import uri_SHS_train as U
 import analyze_stats as anst
 
 ### Logging methods
@@ -300,6 +299,8 @@ def get_train_validation_sets(codes, cliques, tracks, N=9000):
     save_pickle(tracks_train, "tracks_t.pk")
 
 def lda_chart():
+    import uri_SHS_train as U
+    
     codes = load_pickle("lda_tran_codes.pk")
     cliques = load_pickle("lda_train_clique_id.pk")
     tracks = load_pickle("lda_train_track_id.pk")
