@@ -6,9 +6,6 @@ Source code for the article "Data Driven and Discriminative Projections for Larg
 Requirements
 ============
 
-Second Hand Song Dataset:
-http://labrosa.ee.columbia.edu/millionsong/secondhand
-
 Million Song Dataset:
 http://labrosa.ee.columbia.edu/millionsong/
 
@@ -20,3 +17,6 @@ http://www.scipy.org/
 
 PyLab:
 http://wiki.scipy.org/PyLab
+
+Scikit-Learn:
+http://scikit-learn.org/stable/

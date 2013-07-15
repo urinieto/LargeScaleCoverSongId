@@ -1,21 +1,41 @@
 #!/usr/bin/env python
 """
-Quickly test cover song on the usual list of 500 binary queries
+Binary task of cover song identification using the Millions Song Dataset 
+and the Second Hand Song dataset.
+
+References:
+Bertin-Mahieux, T., & Ellis, D. P. W. (2012). Large-Scale Cover Song 
+Recognition Using The 2D Fourier Transform Magnitude. In Proc. of the 13th 
+International Society for Music Information Retrieval Conference (pp. 241-246).
+Porto, Portugal.
+
+Humphrey, E. J., Nieto, O., & Bello, J. P. (2013). Data Driven and 
+Discriminative Projections for Large-Scale Cover Song Identification. 
+In Proc. of the 14th International Society for Music Information Retrieval 
+Conference. Curitiba, Brazil.
+
+Author: Thierry Bertin-Mahieux (tb2332@columbia.edu)
+Modified by: Oriol Nieto (oriol@nyu.edu)
 """
 
-
-import os
-import sys
+import argparse
 import cPickle
 import numpy as np
-import argparse
+import os
+import sys
+import time
+
 # local stuff
 import pca
 import hdf5_getters as GETTERS
 import dan_tools
-
 import utils
 
+# Params, for Thierry's ISMIR paper
+WIN = 75
+PWR = 1.96
+
+logger = utils.configure_logger()
 
 def extract_feats(filename, feats, track_ids, lda=None):
     """
@@ -31,6 +51,30 @@ def extract_feats(filename, feats, track_ids, lda=None):
         return feat
     except:
         return None
+
+
+def extract_feats_orig(filename):
+    """
+    Return a one dimensional vector for the data in the
+    given file
+    It uses 2D-FFT, etc
+    """
+    # get btchroma
+    feats = dan_tools.msd_beatchroma(filename)
+    if feats is None:
+        return None
+    # apply pwr
+    feats = dan_tools.chrompwr(feats, PWR)
+    # extract fft
+    feats = dan_tools.btchroma_to_fftmat(feats, WIN)
+    if feats is None:
+        return None
+    # take median
+    feats = np.median(feats, axis=1)
+    # normalize
+    feats = dan_tools.chromnorm(feats.reshape(feats.shape[0], 1))
+    # done
+    return feats.flatten()
 
 
 def read_query_file(queriesf):
@@ -57,7 +101,7 @@ def read_query_file(queriesf):
     assert len(triplet) == 3
     queries.append(triplet)
     f.close()
-    print 'Found %d queries from file %s' % (len(queries), queriesf)
+    logger.info('Found %d queries from file %s' % (len(queries), queriesf))
     return queries
 
 
@@ -73,7 +117,11 @@ def main():
                         help="cPickle file containing the LDA transform.")
     # Parse
     args = parser.parse_args()
-    maindir = "SHSTrain/"
+
+    # Track time
+    start_time = time.time()
+
+    maindir = "MSD"
     queriesf = args.list500queries
     shsf = "SHS/shs_dataset_train.txt"
     lda = args.lda
@@ -90,10 +138,10 @@ def main():
     cliques, all_tracks = utils.read_shs_file(shsf)
     track_ids = all_tracks.keys()
     clique_ids = np.asarray(utils.compute_clique_idxs(track_ids, cliques))
-    print "Track ids and clique ids read"
+    logger.info("Track ids and clique ids read")
 
     # read track ids
-    feats = utils.load_pickle(args.features)
+    #feats = utils.load_pickle(args.features)
 
     if lda != None:
         lda = utils.load_pickle(args.lda)
@@ -105,8 +153,10 @@ def main():
     # iterate over queries!
     for triplet in queries:
         # get features
-        triplet_feats = map(lambda f: extract_feats(f, feats, track_ids, lda), 
-                            triplet)
+        #triplet_feats = map(lambda f: extract_feats(f, feats, track_ids, lda), 
+        #                    triplet)
+        filenames = map(lambda tid: utils.path_from_tid(maindir, tid), triplet)
+        triplet_feats = map(lambda f: extract_feats_orig(f), filenames)
         if None in triplet_feats:
             continue
         # did we get it right?
@@ -117,7 +167,6 @@ def main():
         if res1 < res2:
             cnt_good += 1
         else:
-            #print triplet
             pass
         # cnt
         cnt += 1
@@ -125,12 +174,12 @@ def main():
             break
         # verbose
         if cnt % 50 == 0:
-            print ' --- after %d queries, accuracy: %.3f' % (cnt,
-                                                             100. * cnt_good / cnt)
+            logger.info(' --- after %d queries, accuracy: %.3f' % \
+                            (cnt, 100. * cnt_good / cnt))
     # done
-    print 'DONE!'
-    print 'After %d queries, accuracy: %.4f' % (cnt,
-                                                100. * cnt_good / cnt)
+    logger.info('After %d queries, accuracy: %.4f' % (cnt,
+                                                100. * cnt_good / cnt))
+    logger.info('Done! Took %.2f seconds' % (time.time() - start_time))
 
 if __name__ == '__main__':
     main()

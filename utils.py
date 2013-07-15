@@ -4,16 +4,30 @@
 __author__      = "Uri Nieto"
 __date__        = "24/10/12"
 
-import os
-import numpy as np
-import pylab as plt
 import cPickle
-import dan_tools
 import glob
+import logging
+import numpy as np
+import os
+import pylab as plt
 from sklearn.lda import LDA
+
+# local files
+import dan_tools
 import uri_SHS_train as U
 import analyze_stats as anst
 
+### Logging methods
+def configure_logger():
+    """Configures the logger for this project."""
+    logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s %(filename)s:%(lineno)d  %(message)s',
+                    datefmt='%m/%d/%Y %I:%M:%S %p')
+    return get_logger()
+
+def get_logger():
+    """Returns the logger created for this project."""
+    return logging.getLogger('coverSongs')
 
 def beatsync_segments( seg_starts, beats, pitches, total_dur, weight=False  ):
     """Resamples the segments into beat-synchronous segments.
@@ -173,7 +187,8 @@ def read_shs_file(shsf):
             all_tracks[tid] = [None, curr_clique]
     cliques.append(tracks)
     f.close()
-    print 'Found %d cliques from file %s' % (len(cliques), shsf)
+    logger = get_logger()
+    logger.info('Found %d cliques from file %s' % (len(cliques), shsf))
     return cliques, all_tracks
 
 
@@ -243,13 +258,16 @@ def extract_track_ids(maindir):
         for file in files:
             track_ids.append(os.path.basename(file).split(ext)[0])
         cnt += len(files)
-    print "Parsed %d files", cnt
+    logger = get_logger()
+    logger.info("Parsed %d files", cnt)
     return track_ids
 
 def compute_clique_idxs(track_ids, cliques):
     """Returns an array of size len(track_ids) with the clique_id 
         for each track."""
     clique_ids = []
+    logger = get_logger()
+    logger.info("Computing clique indeces...")
     for cnt, tid in enumerate(track_ids):
         i = 0
         idx = -1
@@ -260,8 +278,8 @@ def compute_clique_idxs(track_ids, cliques):
             i += 1
         clique_ids.append(idx)
 
-        if cnt % 50000 == 0:
-            print "Iteration:", cnt
+        #if cnt % 50000 == 0:
+        #    print "Iteration:", cnt
     return clique_ids
 
 def clean_feats(feats, clique_ids, track_ids):
@@ -284,7 +302,8 @@ def load_pickle(file):
     f = open(file, 'r')
     dict = cPickle.load(f)
     f.close()
-    print "file %s loaded" % file
+    logger = get_logger()
+    logger.info("file %s loaded" % file)
     return dict
 
 def save_pickle(data, file):
@@ -292,7 +311,8 @@ def save_pickle(data, file):
     f = open(file, 'w')
     cPickle.dump(data, f, protocol=1)
     f.close()
-    print "file %s saved" % file
+    logger = get_logger()
+    logger.info("file %s saved" % file)
 
 def get_train_validation_sets(codes, cliques, tracks, N=9000):
     """Gets a training set and a validation set from a set of codes with
@@ -362,6 +382,7 @@ def lda_chart():
     n_comps = [50, 100, 200]
     maindir = "SHSTrain"
     d = "dicts/BasisProjection2_kE2045_actEdot_shkE0x200_anormETrue.pk"
+    logger = get_logger()
     for noise in noises:
         for n_comp in n_comps:
             # Fit LDA
@@ -390,7 +411,7 @@ def lda_chart():
                 (n_comp, "train", noise, ar_train, map_train)
             str_val = "lda:%d, dataset:%s, noise:%d, avg rank:%.2f, MAP:%.4f\n" % \
                 (n_comp, "val", noise, ar_val, map_val)
-            print str_train + str_val
+            logger.info(str_train + str_val)
 
             f = open("lda_chart.txt", "a")
             f.write(str_train + str_val)
