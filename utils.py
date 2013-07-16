@@ -83,14 +83,6 @@ def plot_features( feat ):
     plt.imshow( np.transpose(feat), interpolation="nearest", aspect="auto" )
 
 
-def read_pk(pickle_file):
-    """Reads the pickle file and returns its content."""
-    f = open(pickle_file, "r")
-    data = cPickle.load(f)
-    f.close()
-    return data
-
-
 def compute_fft2d_feats(feats):
     """Gets the 2dFFT magnitude of the list of features."""
     fft_feats = []
@@ -172,8 +164,8 @@ def extract_feats(filename):
 
 def fit_LDA_from_codes_file(codes_file):
     """Fits and LDA from a codes file and saves it into a new pickle file."""
-    clique_idx = read_pk("clique_idx.pk")
-    codes = read_pk(codes_file)
+    clique_idx = load_pickle("clique_idx.pk")
+    codes = load_pickle(codes_file)
 
     # Remove nans
     nan_idx = np.unique(np.where(np.isnan(codes))[0])
@@ -240,13 +232,13 @@ def clean_feats2(feats, clique_ids):
     return feats, clique_ids
 
 def load_pickle(file):
-    """Gets the file from the cPickle file dictfile."""
+    """Gets the file from the cPickle file."""
     f = open(file, 'r')
-    dict = cPickle.load(f)
+    d = cPickle.load(f)
     f.close()
     logger = get_logger()
     logger.info("file %s loaded" % file)
-    return dict
+    return d
 
 def save_pickle(data, file):
     """Save the data into a cPickle file."""

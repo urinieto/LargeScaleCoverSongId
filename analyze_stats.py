@@ -7,6 +7,7 @@ A stats cPickle file has the following format:
 - Each position (or track) contains an np.array with the indeces
     of the tracks that are covers of this current track
     (note that these indeces will range from 0..N-1).
+- The list is sorted by the distance of a given query.
 
 The results this script computes are:
 - Mean Average Precision (MAP)
@@ -20,12 +21,6 @@ import cPickle
 import numpy as np
 import pylab as plt
 
-
-def read_cPickle(file):
-    f = open(file, "r")
-    d = cPickle.load(f)
-    f.close()
-    return d
 
 def get_top_ranked(stats):
     tr = np.zeros(len(stats))
@@ -110,7 +105,6 @@ def mean_per_clique_count(stats, N=50):
                 continue
         if len(m) != 0:
             means[n] = np.mean(m)
-        #print n, k
     return means
 
 def stat_differences(s1, s2):
@@ -140,7 +134,7 @@ def stat_differences(s1, s2):
     plt.show()
 
 def process(statsfile, optfile=None):
-    stats = read_cPickle(statsfile)
+    stats = utils.load_pickle(statsfile)
     track_ar = average_rank_per_track(stats)
     clique_ar = average_rank_per_clique(stats)
     ma_p = mean_average_precision(stats)
