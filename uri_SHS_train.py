@@ -139,7 +139,9 @@ def score(feats, clique_ids, lda_idx=0, stats_len=None, ver=True):
 def main():
     # Args parser
     parser = argparse.ArgumentParser(description=
-                "Evaluates the average rank and mean AP for the SHS")
+                "Cover song ID on the training Second Hand Song dataset")
+    parser.add_argument("msd_dir", action="store",
+                        help="Million Song Dataset main directory")
     parser.add_argument("-dictfile", action="store", default="",
                         help="Pickle to the learned dictionary")
     parser.add_argument("-lda", action="store", nargs=2, default=[None,0], 
@@ -151,7 +153,7 @@ def main():
 
     args = parser.parse_args()
     start_time = time.time()
-    maindir = "MSD/"
+    maindir = args.msd_dir
     shsf = "SHS/shs_dataset_train.txt"
     dictfile = args.dictfile
 

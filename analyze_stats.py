@@ -13,6 +13,7 @@ The results this script computes are:
 - Mean Average Precision (MAP)
 - Average Rank per track
 - Average Rank per clique
+- Precision at k (default k=10)
 
 Created by Oriol Nieto (oriol@nyu.edu), 2013"""
 
@@ -20,6 +21,7 @@ import argparse
 import cPickle
 import numpy as np
 import pylab as plt
+import utils
 
 
 def get_top_ranked(stats):
@@ -70,7 +72,6 @@ def precision_at_k(ranks, k):
     return relevant / float(k)
 
 def average_precision(stats, q):
-    #n = len(stats) # Number of retrieved documents
     try:
         nrel = len(stats[q]) # Number of relevant docs
     except:
@@ -133,11 +134,12 @@ def stat_differences(s1, s2):
     ax[2].legend([p1, p2], ["Top Rank", "Average Rank"])
     plt.show()
 
-def process(statsfile, optfile=None):
+def process(statsfile, k, optfile=None):
     stats = utils.load_pickle(statsfile)
     track_ar = average_rank_per_track(stats)
     clique_ar = average_rank_per_clique(stats)
     ma_p = mean_average_precision(stats)
+    k_p = average_precision(stats, k)
 
     N = 50
     m = mean_per_clique_count(stats, N=N)
@@ -148,22 +150,27 @@ def process(statsfile, optfile=None):
 
     print "Average Rank per Track:", track_ar
     print "Average Rank per Clique:", clique_ar
-    print "Mean Average Precision:", ma_p
-    plt.bar(xrange(0, N), m)
-    plt.show()
+    print "Mean Average Precision: %.2f %%" % (ma_p * 100)
+    print "Precision at %d: %.2f %%" % (k, k_p * 100)
+    
+    #plt.bar(xrange(0, N), m)
+    #plt.show()
 
 def main():
     # Args parser
     parser = argparse.ArgumentParser(description=
-                "Analyzes the stats of a stats pickle file")
+                "Analyzes the stats of a stats pickle file",
+                formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("statsfile", action="store",
                         help="stats file")
+    parser.add_argument("-k", action="store", dest="k", default=10, type=int,
+                        help="Compute Precision at k")
     parser.add_argument("-s", action="store", dest="optfile", default=None,
-                        help="optional stats file")
+                        help="Optional stats file to make compare with")
     args = parser.parse_args()
 
     # Process
-    process(args.statsfile, optfile=args.optfile)
+    process(args.statsfile, k=args.k, optfile=args.optfile)
 
 
 
