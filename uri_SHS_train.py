@@ -99,6 +99,7 @@ def compute_feats(track_ids, maindir, d, lda_file=None, lda_n=0, codes=None,
         d = "thierry" # For saving purposes
     
     # Save codes
+    utils.create_dir("results")
     if compute_codes:
         utils.save_pickle(codes, "results/codes2-" + os.path.basename(d) + ".pk")
 
@@ -192,7 +193,7 @@ def main():
     stats = score(feats, clique_ids)
 
     # Save data
-    if didctfile == "":
+    if dictfile == "":
         dictfile = "thierry" # For saving purposes
     utils.save_pickle(stats, "results/stats-" + os.path.basename(dictfile) + ".pk")
 
