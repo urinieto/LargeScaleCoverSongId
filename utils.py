@@ -145,6 +145,7 @@ def extract_feats(filename):
     Return a all the patches for the data in the
     given file
     It uses 2D-FFT, etc
+    Written by Thierry
     """
     PWR = 1.96
     WIN = 75

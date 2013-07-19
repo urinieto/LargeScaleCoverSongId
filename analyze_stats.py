@@ -4,10 +4,8 @@
 A stats cPickle file has the following format:
 
 - List of N elements, each representing a track.
-- Each position (or track) contains an np.array with the indeces
-    of the tracks that are covers of this current track
-    (note that these indeces will range from 0..N-1).
-- The list is sorted by the distance of a given query.
+- Each position (or track) contains the rank index of the covers
+    corresponding to this position.
 
 The results this script computes are:
 - Mean Average Precision (MAP)
@@ -67,6 +65,7 @@ def average_rank_per_clique(stats):
     return np.mean(mean_r)
 
 def precision_at_k(ranks, k):
+    if k == 0: return 1.0
     ranks = np.asarray(ranks)
     relevant = len(np.where(ranks <= k)[0])
     return relevant / float(k)
@@ -92,7 +91,9 @@ def mean_average_precision(stats):
         ma_p.append(ap)
     return np.mean(ma_p)
 
-def mean_per_clique_count(stats, N=50):
+def mean_per_clique_count(stats, N=None):
+    if N is None:
+        N = len(stats)
     means = np.zeros(N)
     for n in xrange(1,N):
         m = []
@@ -134,6 +135,18 @@ def stat_differences(s1, s2):
     ax[2].legend([p1, p2], ["Top Rank", "Average Rank"])
     plt.show()
 
+def compute_rank_histogram(stats, bins=100):
+    ranks = []
+    for s in stats:
+        try:
+            for rank in s:
+                ranks.append(rank)
+        except:
+            continue
+    hist, edges = np.histogram(ranks, bins=bins)
+    plt.bar(xrange(0,bins), hist)
+    plt.show()
+
 def process(statsfile, k, optfile=None):
     stats = utils.load_pickle(statsfile)
     track_ar = average_rank_per_track(stats)
@@ -141,20 +154,31 @@ def process(statsfile, k, optfile=None):
     ma_p = mean_average_precision(stats)
     k_p = average_precision(stats, k)
 
-    N = 50
-    m = mean_per_clique_count(stats, N=N)
-
     if optfile != None:
         stats2 = read_cPickle(optfile)
         stat_differences(stats, stats2)
 
-    print "Average Rank per Track:", track_ar
-    print "Average Rank per Clique:", clique_ar
+    print "Number of queries:", len(stats)
+    print "Average Rank per Track: %.3f" % track_ar
+    print "Average Rank per Clique: %.3f" % clique_ar
     print "Mean Average Precision: %.2f %%" % (ma_p * 100)
     print "Precision at %d: %.2f %%" % (k, k_p * 100)
     
+    #N = len(stats)
+    #m = mean_per_clique_count(stats, N=N)
     #plt.bar(xrange(0, N), m)
     #plt.show()
+
+    m = []
+    for s in stats:
+        try:
+            m.append(np.mean(s))
+            if np.isnan(m[-1]) or m[-1] == np.inf:
+                m = m[:-1]
+        except:
+            continue
+    m = np.asarray(m)
+    plt.plot(m); plt.show()
 
 def main():
     # Args parser

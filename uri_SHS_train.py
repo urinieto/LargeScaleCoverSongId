@@ -41,12 +41,12 @@ def compute_feats(track_ids, maindir, d, lda_file=None, lda_n=0, codes=None,
     else:
         K = PATCH_LEN
     
-    if codes == None:
+    if codes is None:
         compute_codes = True
         codes = np.ones((len(track_ids),K)) * np.nan
     else:
         compute_codes = False
-    if lda_file != None:
+    if lda_file is not None:
         if lda_n == 0: n_comp = 50
         elif lda_n == 1: n_comp = 100
         elif lda_n == 2: n_comp = 200
@@ -80,7 +80,7 @@ def compute_feats(track_ids, maindir, d, lda_file=None, lda_n=0, codes=None,
             codes[cnt] = H.copy()
 
         # Apply LDA if needed
-        if lda_file != None:
+        if lda_file is not None:
             H = lda_file[lda_n].transform(H)
 
         #DrLim
@@ -100,10 +100,10 @@ def compute_feats(track_ids, maindir, d, lda_file=None, lda_n=0, codes=None,
     
     # Save codes
     if compute_codes:
-        utils.save_pickle(codes, "codes-" + os.path.basename(d) + ".pk")
+        utils.save_pickle(codes, "results/codes2-" + os.path.basename(d) + ".pk")
 
     # Save features
-    utils.save_pickle(final_feats, "feats-" + os.path.basename(d) + ".pk")
+    utils.save_pickle(final_feats, "results/feats-" + os.path.basename(d) + ".pk")
 
     logger.info("Features Computed")
     return final_feats
@@ -194,7 +194,7 @@ def main():
     # Save data
     if didctfile == "":
         dictfile = "thierry" # For saving purposes
-    utils.save_pickle(stats, "stats-" + os.path.basename(dictfile) + ".pk")
+    utils.save_pickle(stats, "results/stats-" + os.path.basename(dictfile) + ".pk")
 
     # done
     logger.info('Average rank per track: %.2f, clique: %.2f, MAP: %.5f' \
