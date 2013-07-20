@@ -51,15 +51,7 @@ def compute_feats(track_ids, maindir, d, lda_file=None, lda_n=0, codes=None,
         elif lda_n == 1: n_comp = 100
         elif lda_n == 2: n_comp = 200
     else:
-        n_comp = 900
-
-    # DrLIM / PCAstuff!   
-    #n_comp = 200
-    #fx_drlim = load_transform("DrLIMTransform_200.pk")
-    #pca = utils.load_pickle("pca" + str(n_comp) + "_90000.pk")
-    #lda200 = utils.load_pickle("lda200_24000.pk")
-
-    #n_comp = lda_file[0].n_components
+        n_comp = K 
 
     final_feats = np.ones((codes.shape[0],n_comp)) * np.nan
     for cnt, tid in enumerate(track_ids):
@@ -79,14 +71,11 @@ def compute_feats(track_ids, maindir, d, lda_file=None, lda_n=0, codes=None,
         if compute_codes:
             codes[cnt] = H.copy()
 
+        #H = dan_tools.chromnorm(H.reshape(H.shape[0], 1)).squeeze()
+
         # Apply LDA if needed
         if lda_file is not None:
             H = lda_file[lda_n].transform(H)
-
-        #DrLim
-        #H = fx_drlim(H).T
-        #H = pca.transform(H)
-        #H = lda200.transform(H)
 
         final_feats[cnt] = dan_tools.chromnorm(H.reshape(H.shape[0], 1)).squeeze()
 

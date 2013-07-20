@@ -143,9 +143,61 @@ def compute_rank_histogram(stats, bins=100):
                 ranks.append(rank)
         except:
             continue
+    # Calculate histogram
     hist, edges = np.histogram(ranks, bins=bins)
+    
+    # Probability Density Function:
+    hist = hist.astype(float)
+    hist /= float(hist.sum())
+
+    # Plot histogram as PDF
     plt.bar(xrange(0,bins), hist)
+    plt.title("Rank Histogram")
+    plt.xlabel("Ranks")
+    plt.ylabel("Normalized Count")
+    if len(stats) > 6000:
+        # If stats from the Training set, set the ticks from 0 to 12930
+        plt.xticks(xrange(0, bins, bins/5), xrange(0, 15000, 15000/5))
+        plt.yticks(np.arange(0, 4)/10.)
+    else:
+        # Set stats for the Million Song Dataset (0 to 1000000)
+        plt.xticks(xrange(0, bins, bins/5), xrange(0, 1000000, 1000000/5))
     plt.show()
+
+def compute_rank_histogram_buckets(stats, bins=5):
+    ranks = []
+    for s in stats:
+        try:
+            for rank in s:
+                ranks.append(rank)
+        except:
+            continue
+    # Calculate histogram
+    hist = np.zeros(5) #1-10, 10-25, 25-50, 50-100, 100+
+    for r in ranks:
+        if r <= 10:
+            hist[0] += 1
+        elif r > 10 and r <= 25:
+            hist[1] += 1
+        elif r > 25 and r <= 50:
+            hist[2] += 1
+        elif r > 50 and r <= 100:
+            hist[3] += 1
+        elif r > 100:
+            hist[4] += 1
+
+    # Probability Density Function:
+    hist = hist.astype(float)
+    hist /= float(hist.sum())
+
+    # Plot histogram as PDF
+    plt.bar(xrange(0,bins), hist, align="center")
+    plt.title("Rank Histogram")
+    plt.xlabel("Ranks")
+    plt.ylabel("Normalized Count")
+    plt.xticks(xrange(0,5), ("1-10", "11-25", "26-50", "51-100", "101+"))
+    plt.show()
+
 
 def process(statsfile, k, optfile=None):
     stats = utils.load_pickle(statsfile)
@@ -164,21 +216,12 @@ def process(statsfile, k, optfile=None):
     print "Mean Average Precision: %.2f %%" % (ma_p * 100)
     print "Precision at %d: %.2f %%" % (k, k_p * 100)
     
+    #compute_rank_histogram(stats)
+    compute_rank_histogram_buckets(stats)
     #N = len(stats)
     #m = mean_per_clique_count(stats, N=N)
     #plt.bar(xrange(0, N), m)
     #plt.show()
-
-    m = []
-    for s in stats:
-        try:
-            m.append(np.mean(s))
-            if np.isnan(m[-1]) or m[-1] == np.inf:
-                m = m[:-1]
-        except:
-            continue
-    m = np.asarray(m)
-    plt.plot(m); plt.show()
 
 def main():
     # Args parser
