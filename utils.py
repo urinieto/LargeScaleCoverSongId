@@ -165,7 +165,7 @@ def extract_feats(filename):
 
 def fit_LDA_from_codes_file(codes_file):
     """Fits and LDA from a codes file and saves it into a new pickle file."""
-    clique_idx = load_pickle("clique_idx.pk")
+    clique_idx = load_pickle("SHS/clique_ids_train.pk")
     codes = load_pickle(codes_file)
 
     # Remove nans

@@ -273,8 +273,10 @@ class BasisProjection2(BasisProjection):
         else:
             raise ValueError("Unsupported activation: %s"%self.act)
         
-        if shrink>0:
-            A = shrink(A,self.shrink)
+        #if shrink>0:
+        #    A = shrink(A,self.shrink)
+        if self.log_coeff > 0:
+            X = np.log1p(self.log_coeff*X)
         
         if self.act_norm:
             A = l2_norm(A)    

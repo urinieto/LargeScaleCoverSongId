@@ -34,7 +34,24 @@ logger = utils.configure_logger()
 def compute_feats(track_ids, maindir, d, lda_file=None, lda_n=0, codes=None, 
         ver=True):
     """Computes the features using the dictionary d. If it doesn't exist, 
-     computes them using Thierry's method."""
+     computes them using Thierry's method.
+
+     The improved pipeline is composed of 11 steps:
+
+        1.- Beat Synchronous Chroma
+        2.- L2-Norm
+        3.- Shingle (PATCH_LEN: 75 x 12)
+        4.- 2D-FFT
+        5.- L2-Norm
+        6.- Log-Scale
+        7.- Sparse Coding
+        8.- Shrinkage
+        9.- Median Aggregation
+        10.- Dimensionality Reduction
+        11.- L2-Norm
+
+    Original method by Thierry doesn't include steps 5,6,7,8,11.
+     """
     if d != "":
         fx = load_transform(d)
         K = int(d.split("_")[1].split("E")[1])
@@ -57,13 +74,23 @@ def compute_feats(track_ids, maindir, d, lda_file=None, lda_n=0, codes=None,
     for cnt, tid in enumerate(track_ids):
         if compute_codes:
             path = utils.path_from_tid(maindir, tid)
+
+            # 1.- Beat Synchronous Chroma
+            # 2.- L2-Norm
+            # 3.- Shingle (PATCH_LEN: 75 x 12)
+            # 4.- 2D-FFT
             feats = utils.extract_feats(path)
             if feats == None:
                 continue
             if d != "":
+                # 5.- L2-Norm
+                # 6.- Log-Scale
+                # 7.- Sparse Coding
+                # 8.- Shrinkage
                 H = fx(feats)
             else:
                 H = feats
+            #. 9.- Median Aggregation
             H = np.median(H, axis=0)
         else:
             H = codes[cnt]
@@ -71,12 +98,12 @@ def compute_feats(track_ids, maindir, d, lda_file=None, lda_n=0, codes=None,
         if compute_codes:
             codes[cnt] = H.copy()
 
-        #H = dan_tools.chromnorm(H.reshape(H.shape[0], 1)).squeeze()
-
         # Apply LDA if needed
         if lda_file is not None:
+            # 10.- Dimensionality Reduction
             H = lda_file[lda_n].transform(H)
 
+        # 11.- L2-Norm
         final_feats[cnt] = dan_tools.chromnorm(H.reshape(H.shape[0], 1)).squeeze()
 
         if ver:
@@ -157,6 +184,7 @@ def main():
     track_ids = all_tracks.keys()
     clique_ids = np.asarray(utils.compute_clique_idxs(track_ids, cliques))
     logger.info("Track ids and clique ids read")
+    utils.save_pickle(clique_ids, "SHS/clique_ids_train.pk")
 
     # read LDA file
     lda_file = args.lda[0]
