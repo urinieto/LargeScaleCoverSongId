@@ -31,6 +31,33 @@ PATCH_LEN = WIN*12
 # Set up logger
 logger = utils.configure_logger()
 
+
+def compute_codes_orig_it(track_ids, maindir, clique_ids, start_idx, end_idx):
+    K = int(d.split("_")[1].split("E")[1])
+    res = []
+    trainedpca = load_pca("models/pca_250Kexamples_900dim_nocovers.pkl")
+    pca_components = [50,100,200]
+
+    # Init codes
+    codes = []
+    for n_comp in pca_components:
+        codes.append(np.ones((end_idx-start_idx,n_comp)) * np.nan)
+
+    for i, tid in enumerate(track_ids[start_idx:end_idx]):
+        path = utils.path_from_tid(maindir, tid)
+        feats = utils.extract_feats(path)
+        if feats == None:
+            continue
+        med = np.median(feats, axis=0)
+        for pca_idx, n_comp in enumerate(pca_components):
+            tmp = dan_tools.chromnorm(med.reshape(med.shape[0], 
+                                    1)).squeeze()
+            codes[pca_idx][i] = trainedpca.apply_newdata(tmp, ndims=n_comp)
+        if i % 1000 == 0:
+            logger.info("Computed %d of %d track(s)" % (i, end_idx-start_idx))
+    res = (codes, track_ids[start_idx:end_idx], clique_ids[start_idx:end_idx])
+    return res
+
 def compute_codes_it(track_ids, maindir, d, clique_ids, lda, 
         start_idx, end_idx):
     fx = load_transform(d)
@@ -68,9 +95,14 @@ def compute_codes(track_ids, maindir, d, N, clique_ids, lda):
         logger.info("Computing %d of 10 iteration" % it)
         start_idx = int(N*1e5 + it*1e4)
         end_idx = int(start_idx + 1e4)
-        codes = compute_codes_it(track_ids, maindir, d, clique_ids, lda,
-            start_idx, end_idx)
-        out_file = "msd_codes/" + str(N) + str(it) + "-msd-codes.pk"
+        if lda is None:
+            codes = compute_codes_it(track_ids, maindir, d, clique_ids,
+                start_idx, end_idx)
+            out_file = "msd_codes_orig/" + str(N) + str(it) + "-msd-codes.pk"
+        else:
+            codes = compute_codes_it(track_ids, maindir, d, clique_ids, lda,
+                start_idx, end_idx)
+            out_file = "msd_codes/" + str(N) + str(it) + "-msd-codes.pk"
         f = open(out_file, "w")
         cPickle.dump(codes, f, protocol=1)
         f.close()
@@ -174,8 +206,8 @@ def main():
             logger.info("LDA file read") 
 
         utils.assert_file(args.dictfile)
-        track_ids = utils.load_pickle("track_ids_msd.pk")
-        clique_ids = utils.load_pickle("clique_ids_msd.pk")
+        track_ids = utils.load_pickle("track_ids_test.pk")
+        clique_ids = utils.load_pickle("clique_ids_test.pk")
         compute_codes(track_ids, maindir, args.dictfile, args.N, clique_ids, 
             lda_file)
         logger.info("Codes computation done!")
