@@ -28,10 +28,8 @@ import analyze_stats as anst
 WIN = 75
 PATCH_LEN = WIN*12
 
-def print_verbose(verb, string):
-    """Print string if verb is true."""
-    if verb:
-        print string
+# Set up logger
+logger = utils.configure_logger()
 
 def compute_codes_it(track_ids, maindir, d, clique_ids, lda, 
         start_idx, end_idx):
@@ -56,7 +54,7 @@ def compute_codes_it(track_ids, maindir, d, clique_ids, lda,
             codes[lda_idx][i] = dan_tools.chromnorm(tmp.reshape(tmp.shape[0], 
                                     1)).squeeze()
         if i % 1000 == 0:
-            print "Computed %d of %d track(s)" % (i, end_idx-start_idx)
+            logger.info("Computed %d of %d track(s)" % (i, end_idx-start_idx))
     res = (codes, track_ids[start_idx:end_idx], clique_ids[start_idx:end_idx])
     return res
 
@@ -67,10 +65,9 @@ def compute_codes(track_ids, maindir, d, N, clique_ids, lda):
             if N = 5: tracks computed: from 500,000 to 599,999
     """
     for it in xrange(10):
-        print "Computing %d of 10 iteration" % it
+        logger.info("Computing %d of 10 iteration" % it)
         start_idx = int(N*1e5 + it*1e4)
         end_idx = int(start_idx + 1e4)
-        print start_idx, end_idx
         codes = compute_codes_it(track_ids, maindir, d, clique_ids, lda,
             start_idx, end_idx)
         out_file = "msd_codes/" + str(N) + str(it) + "-msd-codes.pk"
@@ -97,7 +94,6 @@ def load_codes(codesdir, lda_idx):
 
     track_ids = np.asarray(track_ids)
     clique_ids = np.asarray(clique_ids)
-    print feats.shape, track_ids.shape, clique_ids.shape
 
     f = open("msd_codes_" + str(n_comp) + ".pk", "w")
     cPickle.dump((feats,track_ids,clique_ids), f, protocol=1)
@@ -111,7 +107,7 @@ def score(feats, clique_ids, lda_idx=0):
     #stats = [np.inf]*len(feats)
     
     # For each track id that has a clique id
-    print "Computing scores for the MSD..."
+    logger.info("Computing scores for the MSD...")
     q = 0
     for i, clique_id in enumerate(clique_ids):
         if clique_id == -1:
@@ -124,10 +120,11 @@ def score(feats, clique_ids, lda_idx=0):
             stats[q] = r
         q += 1
         if q % 400 == 0:
-            print 'After %d queries: average rank per track: %.2f, clique: %.2f, MAP: %.5f' \
+            logger.info('After %d queries: average rank per track: %.2f'
+                ', clique: %.2f, MAP: %.5f' \
                 % (q, anst.average_rank_per_track(stats),
                     anst.average_rank_per_clique(stats),
-                    anst.mean_average_precision(stats, n=1e6))
+                    anst.mean_average_precision(stats)))
 
     return stats
 
@@ -161,27 +158,27 @@ def main():
 
     # read LDA file
     lda_file = args.lda
-    if lda_file != None:
+    if lda_file is not None:
         lda_file = utils.load_pickle(lda_file)
-        print "LDA file read"
+        logger.info("LDA file read") 
 
     # read codes file
     codesdir = args.codesdir
-    if codesdir != None:
+    if codesdir is not None:
         #feats, track_ids, clique_ids = load_codes(codesdir, lda_idx=2)
         c = utils.load_pickle(codesdir)
         feats = c[0]
         track_ids = c[1]
         clique_ids = c[2]
-        print "Codes files read"
+        logger.info("Codes files read")
     else:
         utils.assert_file(args.dictfile)
         track_ids = utils.load_pickle("track_ids_msd.pk")
         clique_ids = utils.load_pickle("clique_ids_msd.pk")
         compute_codes(track_ids, maindir, args.dictfile, args.N, clique_ids, 
             lda_file)
-        print "Codes computation done!"
-        print "Took %.2f seconds" % (time.time() - start_time)
+        logger.info("Codes computation done!")
+        logger.info("Took %.2f seconds" % (time.time() - start_time))
         sys.exit()
 
     # Scores
@@ -193,12 +190,11 @@ def main():
     f.close()
 
     # done
-    print 'DONE!'
-    print 'Average rank per track: %.2f, clique: %.2f, MAP: %.5f' \
+    logger.info('Average rank per track: %.2f, clique: %.2f, MAP: %.5f' \
                 % (anst.average_rank_per_track(stats),
                     anst.average_rank_per_clique(stats),
-                    anst.mean_average_precision(stats, n=1e6))
-    print "Took %.2f seconds" % (time.time() - start_time)
+                    anst.mean_average_precision(stats)))
+    logger.info("Done! Took %.2f seconds" % (time.time() - start_time))
 
 if __name__ == '__main__':
     main()
