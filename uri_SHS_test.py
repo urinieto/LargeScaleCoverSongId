@@ -153,14 +153,9 @@ def main():
     utils.assert_file(maindir)
     utils.assert_file(shsf)
 
+    # TODO: Not needed? Do as in train file.
     # read cliques and all tracks
     cliques, all_tracks = utils.read_shs_file(shsf)
-
-    # read LDA file
-    lda_file = args.lda
-    if lda_file is not None:
-        lda_file = utils.load_pickle(lda_file)
-        logger.info("LDA file read") 
 
     # read codes file
     codesdir = args.codesdir
@@ -172,6 +167,12 @@ def main():
         clique_ids = c[2]
         logger.info("Codes files read")
     else:
+        # read LDA file
+        lda_file = args.lda
+        if lda_file is not None:
+            lda_file = utils.load_pickle(lda_file)
+            logger.info("LDA file read") 
+
         utils.assert_file(args.dictfile)
         track_ids = utils.load_pickle("track_ids_msd.pk")
         clique_ids = utils.load_pickle("clique_ids_msd.pk")
