@@ -186,7 +186,7 @@ def main():
     feats, clique_ids, track_ids = utils.clean_feats(feats, clique_ids, track_ids)
     stats = score(feats, clique_ids)
 
-    f = open("stats-" + os.path.basename(args.dictfile), "w")
+    f = open("stats-test-kE2045-LDA50.pk" + os.path.basename(args.dictfile), "w")
     cPickle.dump(stats, f, protocol=1)
     f.close()
 
