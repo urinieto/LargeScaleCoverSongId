@@ -33,9 +33,8 @@ logger = utils.configure_logger()
 
 
 def compute_codes_orig_it(track_ids, maindir, clique_ids, start_idx, end_idx):
-    K = int(d.split("_")[1].split("E")[1])
     res = []
-    trainedpca = load_pca("models/pca_250Kexamples_900dim_nocovers.pkl")
+    trainedpca = utils.load_pickle("models/pca_250Kexamples_900dim_nocovers.pkl")
     pca_components = [50,100,200]
 
     # Init codes
@@ -61,7 +60,6 @@ def compute_codes_orig_it(track_ids, maindir, clique_ids, start_idx, end_idx):
 def compute_codes_it(track_ids, maindir, d, clique_ids, lda, 
         start_idx, end_idx):
     fx = load_transform(d)
-    K = int(d.split("_")[1].split("E")[1])
     res = []
     lda_components = [50,100,200]
 
@@ -96,7 +94,7 @@ def compute_codes(track_ids, maindir, d, N, clique_ids, lda):
         start_idx = int(N*1e5 + it*1e4)
         end_idx = int(start_idx + 1e4)
         if lda is None:
-            codes = compute_codes_it(track_ids, maindir, d, clique_ids,
+            codes = compute_codes_orig_it(track_ids, maindir, clique_ids,
                 start_idx, end_idx)
             out_file = "msd_codes_orig/" + str(N) + str(it) + "-msd-codes.pk"
         else:
@@ -206,8 +204,8 @@ def main():
             logger.info("LDA file read") 
 
         utils.assert_file(args.dictfile)
-        track_ids = utils.load_pickle("track_ids_test.pk")
-        clique_ids = utils.load_pickle("clique_ids_test.pk")
+        track_ids = utils.load_pickle("SHS/track_ids_test.pk")
+        clique_ids = utils.load_pickle("SHS/clique_ids_test.pk")
         compute_codes(track_ids, maindir, args.dictfile, args.N, clique_ids, 
             lda_file)
         logger.info("Codes computation done!")
