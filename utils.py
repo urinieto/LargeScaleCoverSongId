@@ -217,20 +217,15 @@ def compute_clique_idxs(track_ids, cliques):
         #    print "Iteration:", cnt
     return clique_ids
 
-def clean_feats(feats, clique_ids, track_ids):
+def clean_feats(feats, clique_ids, track_ids=[]):
     """Removes any nan feats from the input parameters."""
     nan_idx = np.unique(np.where(np.isnan(feats))[0])
     feats = np.delete(feats, nan_idx, axis=0)
     clique_ids = np.delete(clique_ids, nan_idx, axis=0)
+    if track_ids == []:
+        return feats, clique_ids
     track_ids = np.delete(track_ids, nan_idx, axis=0)
     return feats, clique_ids, track_ids
-
-def clean_feats2(feats, clique_ids):
-    """Removes any nan feats from the input parameters."""
-    nan_idx = np.unique(np.where(np.isnan(feats))[0])
-    feats = np.delete(feats, nan_idx, axis=0)
-    clique_ids = np.delete(clique_ids, nan_idx, axis=0)
-    return feats, clique_ids
 
 def load_pickle(file):
     """Gets the file from the cPickle file."""
