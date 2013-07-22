@@ -125,7 +125,6 @@ def load_codes(codesdir, lda_idx):
         feats = np.append(feats, codes[0][lda_idx], axis=0)
         track_ids += codes[1]
         clique_ids += list(codes[2])
-        logger.info("Read %s" % code_file)
 
     track_ids = np.asarray(track_ids)
     clique_ids = np.asarray(clique_ids)
@@ -172,12 +171,12 @@ def main():
                         help="Pickle to the learned dictionary")
     parser.add_argument("-N", action="store", type=int, default=0,
                         help="Set of 100,000ths to be computed")
-    parser.add_argument("-v", action="store_true", default=False,
-                        help="Verbose mode")  
     parser.add_argument("-lda", action="store", default=None, 
                         help="LDA file")
-    parser.add_argument("-codes", action="store", default=None, dest="codesdir",
-                        help="Path to the folder with all the codes")
+    parser.add_argument("-codes", action="store", nargs=2, default=[None,0], 
+                        dest="codesdir", metavar=("msd_codes_orig/", "n"),
+                        help="Path to the folder with all the codes and "
+                            "version to evaluate")
 
     args = parser.parse_args()
     start_time = time.time()
@@ -193,9 +192,10 @@ def main():
     cliques, all_tracks = utils.read_shs_file(shsf)
 
     # read codes file
-    codesdir = args.codesdir
+    codesdir = args.codesdir[0]
     if codesdir is not None:
-        feats, track_ids, clique_ids = load_codes(codesdir, lda_idx=0)
+        feats, track_ids, clique_ids = load_codes(codesdir, 
+                                                lda_idx=args.codesdir[1])
         #c = utils.load_pickle(codesdir)
         #feats = c[0]
         #track_ids = c[1]
