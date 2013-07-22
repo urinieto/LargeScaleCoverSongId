@@ -166,7 +166,7 @@ def main():
         trainedpca = cPickle.load(f)
         f.close()
         assert pcadim > 0
-        print 'trained pca loaded'
+        logger.info('trained pca loaded')
 
     if lda != None:
         lda = utils.load_pickle(args.lda)

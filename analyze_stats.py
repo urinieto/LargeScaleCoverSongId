@@ -13,6 +13,9 @@ The results this script computes are:
 - Average Rank per clique
 - Precision at k (default k=10)
 
+Plotting:
+- Rank histograms (one or two stats files)
+
 Created by Oriol Nieto (oriol@nyu.edu), 2013"""
 
 import argparse
@@ -20,7 +23,6 @@ import cPickle
 import numpy as np
 import pylab as plt
 import utils
-
 
 def get_top_ranked(stats):
     tr = np.zeros(len(stats))
@@ -70,7 +72,7 @@ def precision_at_k(ranks, k):
     relevant = len(np.where(ranks <= k)[0])
     return relevant / float(k)
 
-def average_precision(stats, q):
+def average_precision(stats, q, ver=False):
     try:
         nrel = len(stats[q]) # Number of relevant docs
     except:
@@ -80,6 +82,12 @@ def average_precision(stats, q):
         pk = precision_at_k(stats[q], k)
         ap.append(pk)
     return np.sum(ap) / float(nrel)
+
+def average_precision_at_k(stats, k):
+    precision = []
+    for s in stats:
+        precision.append(precision_at_k(s,k))
+    return np.mean(precision)
 
 def mean_average_precision(stats):
     Q = len(stats) # Number of queries
@@ -109,33 +117,9 @@ def mean_per_clique_count(stats, N=None):
             means[n] = np.mean(m)
     return means
 
-def stat_differences(s1, s2):
-    tr1 = get_top_ranked(s1)
-    tr2 = get_top_ranked(s2)
-    ar1 = get_average_rank(s1)
-    ar2 = get_average_rank(s2)
+##### PLOTTING
 
-    fig, ax = plt.subplots(3)
-    max = 12000
-    #print tr1[71], tr2[71]
-    #print ar1[1977], ar2[1977] # Extreme case!
-    p1, = ax[0].plot(tr1[:max], 's', alpha=0.6)
-    p2, = ax[0].plot(tr2[:max], 's', alpha=0.6)
-    ax[0].set_title("Top Ranked")
-    ax[0].legend([p1, p2], ["PCA", "BasisProj"])
-
-    p1, = ax[1].plot(ar1[:max], 's', alpha=0.6)
-    p2, = ax[1].plot(ar2[:max], 's', alpha=0.6)
-    ax[1].set_title("Average Rank")
-    ax[1].legend([p1, p2], ["PCA", "BasisProj"])
-
-    p1, = ax[2].plot(abs(ar1[:max] - ar2[:max]), 's', alpha=0.6)
-    p2, = ax[2].plot(abs(tr1[:max] - tr2[:max]), 's', alpha=0.6)
-    ax[2].set_title("Difference between PCA and BasisProj")
-    ax[2].legend([p1, p2], ["Top Rank", "Average Rank"])
-    plt.show()
-
-def compute_rank_histogram(stats, bins=100):
+def compute_rank_histogram_buckets(stats):
     ranks = []
     for s in stats:
         try:
@@ -144,36 +128,8 @@ def compute_rank_histogram(stats, bins=100):
         except:
             continue
     # Calculate histogram
-    hist, edges = np.histogram(ranks, bins=bins)
-    
-    # Probability Density Function:
-    hist = hist.astype(float)
-    hist /= float(hist.sum())
-
-    # Plot histogram as PDF
-    plt.bar(xrange(0,bins), hist)
-    plt.title("Rank Histogram")
-    plt.xlabel("Ranks")
-    plt.ylabel("Normalized Count")
-    if len(stats) > 6000:
-        # If stats from the Training set, set the ticks from 0 to 12930
-        plt.xticks(xrange(0, bins, bins/5), xrange(0, 15000, 15000/5))
-        plt.yticks(np.arange(0, 4)/10.)
-    else:
-        # Set stats for the Million Song Dataset (0 to 1000000)
-        plt.xticks(xrange(0, bins, bins/5), xrange(0, 1000000, 1000000/5))
-    plt.show()
-
-def compute_rank_histogram_buckets(stats, bins=5):
-    ranks = []
-    for s in stats:
-        try:
-            for rank in s:
-                ranks.append(rank)
-        except:
-            continue
-    # Calculate histogram
-    hist = np.zeros(5) #1-10, 10-25, 25-50, 50-100, 100+
+    """
+    hist = np.zeros(5) #1-10, 11-25, 26-50, 51-100, 101+
     for r in ranks:
         if r <= 10:
             hist[0] += 1
@@ -185,10 +141,28 @@ def compute_rank_histogram_buckets(stats, bins=5):
             hist[3] += 1
         elif r > 100:
             hist[4] += 1
+    """
+    hist = np.zeros(5) #1, 2, 3-5, 6-10, 11+
+    for r in ranks:
+        if r <= 1:
+            hist[0] += 1
+        elif r > 1 and r <= 2:
+            hist[1] += 1
+        elif r > 2 and r <= 5:
+            hist[2] += 1
+        elif r > 5 and r <= 10:
+            hist[3] += 1
+        elif r > 10:
+            hist[4] += 1
 
     # Probability Density Function:
     hist = hist.astype(float)
     hist /= float(hist.sum())
+
+    return hist
+
+def plot_rank_histogram(stats, bins=5):
+    hist = compute_rank_histogram_buckets(stats)
 
     # Plot histogram as PDF
     plt.bar(xrange(0,bins), hist, align="center")
@@ -198,30 +172,91 @@ def compute_rank_histogram_buckets(stats, bins=5):
     plt.xticks(xrange(0,5), ("1-10", "11-25", "26-50", "51-100", "101+"))
     plt.show()
 
+def plot_rank_histograms(stats1, stats2, bins=5, test=True):
+
+    hist1 = compute_rank_histogram_buckets(stats1)
+    hist2 = compute_rank_histogram_buckets(stats2)
+
+    if test:
+        label1 = "k-means(2045) + LDA(50)"
+        label2 = "2D-FMC + PCA(200)"
+        title = "Rank Histogram of the test set on the MSD"
+    else:
+        label1 = "k-means(2045) + LDA(200)"
+        label2 = "2D-FMC + PCA(200)"
+        title = "Rank Histogram of the train set"
+
+    fig = plt.figure()
+    ax = fig.gca()
+    width = 0.45
+    ax.bar(np.arange(5)-width/2, hist1, width=width, color='b', 
+        label=label1, align="center")
+    ax.bar(np.arange(5)+width/2, hist2, width=width, color='g', 
+        label=label2, align="center")
+
+    # Plot histogram as PDF
+    plt.title(title)
+    plt.xlabel("Ranks")
+    plt.ylabel("Normalized Count")
+    #plt.xticks(xrange(0,5), ("1-10", "11-25", "26-50", "51-100", "101+"))
+    plt.xticks(xrange(0,5), ("1", "2", "3-5", "6-10", "11+"))
+    plt.legend(loc="upper left")
+    plt.show()
+
+def plot_precision_at_k_histograms(stats1, stats2, K=[1,3,5,10], test=True):
+    P1 = [average_precision_at_k(stats1, k) for k in K]
+    P2 = [average_precision_at_k(stats2, k) for k in K]
+
+    if test:
+        label1 = "k-means(2045) + LDA(50)"
+        label2 = "2D-FMC + PCA(200)"
+        title = "Precision @ k of the test set on the MSD"
+    else:
+        label1 = "k-means(2045) + LDA(200)"
+        label2 = "2D-FMC + PCA(200)"
+        title = "Precision @ k of the train set"
+
+    fig = plt.figure()
+    ax = fig.gca()
+    width = 0.45
+    ax.bar(np.arange(len(K))-width/2, P1, width=width, color='b', 
+        label=label1, align="center")
+    ax.bar(np.arange(len(K))+width/2, P2, width=width, color='g', 
+        label=label2, align="center")
+
+    # Plot histogram as PDF
+    plt.title(title)
+    plt.xlabel("k")
+    plt.ylabel("Precision @ k")
+    plt.xticks(xrange(0,len(K)), ("1", "3", "5", "10"))
+    plt.legend(loc="upper right")
+    plt.show()
+
 
 def process(statsfile, k, optfile=None):
     stats = utils.load_pickle(statsfile)
     track_ar = average_rank_per_track(stats)
     clique_ar = average_rank_per_clique(stats)
     ma_p = mean_average_precision(stats)
-    k_p = average_precision(stats, k)
+    #k_p = average_precision(stats, k, ver=True)
+    k_p = average_precision_at_k(stats, k)
 
-    if optfile != None:
-        stats2 = read_cPickle(optfile)
-        stat_differences(stats, stats2)
+    # Set up logger
+    logger = utils.configure_logger()
 
-    print "Number of queries:", len(stats)
-    print "Average Rank per Track: %.3f" % track_ar
-    print "Average Rank per Clique: %.3f" % clique_ar
-    print "Mean Average Precision: %.2f %%" % (ma_p * 100)
-    print "Precision at %d: %.2f %%" % (k, k_p * 100)
+    # print results
+    logger.info("Number of queries: %d" % len(stats))
+    logger.info("Average Rank per Track: %.3f" % track_ar)
+    logger.info("Average Rank per Clique: %.3f" % clique_ar)
+    logger.info("Mean Average Precision: %.2f %%" % (ma_p * 100))
+    logger.info("Precision at %d: %.2f %%" % (k, k_p * 100))
     
-    #compute_rank_histogram(stats)
-    compute_rank_histogram_buckets(stats)
-    #N = len(stats)
-    #m = mean_per_clique_count(stats, N=N)
-    #plt.bar(xrange(0, N), m)
-    #plt.show()
+    if optfile is not None:
+        stats2 = utils.load_pickle(optfile)
+        #plot_rank_histograms(stats, stats2, test=False) 
+        plot_precision_at_k_histograms(stats, stats2, K=[1,3,5,10], test=True)
+    else:
+        plot_rank_histogram(stats)
 
 def main():
     # Args parser

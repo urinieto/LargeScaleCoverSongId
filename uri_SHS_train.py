@@ -167,6 +167,10 @@ def main():
                         help="Pickle to the features file")
     parser.add_argument("-f", action="store", default="", dest="featfile",
                         help="Pickle to the final features")
+    parser.add_argument("-pca", nargs=2, metavar=('f.pkl', 'n'), 
+                        default=("", 0),
+                        help="pca model saved in a pickle file, " \
+                        "use n dimensions")
 
     args = parser.parse_args()
     start_time = time.time()
@@ -205,6 +209,18 @@ def main():
     else:  
         feats = utils.load_pickle(args.featfile)
 
+    # Apply PCA
+    pcafile = args.pca[0]
+    pcadim = int(args.pca[1])
+    if pcafile != "":
+        trainedpca = utils.load_pickle(pcafile)
+        assert pcadim > 0
+        logger.info('trained pca loaded')
+        pcafeats = np.zeros((feats.shape[0], pcadim))
+        for i,feat in enumerate(feats):
+            pcafeats[i] = trainedpca.apply_newdata(feat, ndims=pcadim)
+        feats = pcafeats
+
     # Scores
     feats, clique_ids, track_ids = utils.clean_feats(feats, clique_ids, track_ids)
     stats = score(feats, clique_ids)
@@ -215,10 +231,10 @@ def main():
     utils.save_pickle(stats, "results/stats-" + os.path.basename(dictfile) + ".pk")
 
     # done
-    logger.info('Average rank per track: %.2f, clique: %.2f, MAP: %.5f' \
+    logger.info('Average rank per track: %.2f, clique: %.2f, MAP: %.2f%%' \
                 % (anst.average_rank_per_track(stats),
                     anst.average_rank_per_clique(stats),
-                    anst.mean_average_precision(stats)))
+                    anst.mean_average_precision(stats) * 100))
     logger.info("Done! Took %.2f seconds" % (time.time() - start_time))
 
 if __name__ == '__main__':

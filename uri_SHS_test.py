@@ -31,7 +31,6 @@ PATCH_LEN = WIN*12
 # Set up logger
 logger = utils.configure_logger()
 
-
 def compute_codes_orig_it(track_ids, maindir, clique_ids, start_idx, end_idx):
     """Computes the original features, based on Thierry and Ellis, 2012.
     Dimensionality reduction using PCA of 50, 100, and 200 components."""

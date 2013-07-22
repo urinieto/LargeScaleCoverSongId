@@ -13,7 +13,6 @@ import pylab as plt
 from sklearn.lda import LDA
 
 # local files
-import dan_tools
 import analyze_stats as anst
 
 ### Logging methods
