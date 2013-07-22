@@ -125,6 +125,7 @@ def load_codes(codesdir, lda_idx):
         feats = np.append(feats, codes[0][lda_idx], axis=0)
         track_ids += codes[1]
         clique_ids += codes[2]
+        logger.info("Read %s" % code_file)
 
     track_ids = np.asarray(track_ids)
     clique_ids = np.asarray(clique_ids)
