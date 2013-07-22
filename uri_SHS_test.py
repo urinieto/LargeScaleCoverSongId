@@ -33,6 +33,8 @@ logger = utils.configure_logger()
 
 
 def compute_codes_orig_it(track_ids, maindir, clique_ids, start_idx, end_idx):
+    """Computes the original features, based on Thierry and Ellis, 2012.
+    Dimensionality reduction using PCA of 50, 100, and 200 components."""
     res = []
     trainedpca = utils.load_pickle("models/pca_250Kexamples_900dim_nocovers.pkl")
     pca_components = [50,100,200]
@@ -59,6 +61,8 @@ def compute_codes_orig_it(track_ids, maindir, clique_ids, start_idx, end_idx):
 
 def compute_codes_it(track_ids, maindir, d, clique_ids, lda, 
         start_idx, end_idx):
+    """Computes the features based on Humphrey, Nieto and Bello, 2013.
+    Dimensionality reduction using LDA of 50, 100, and 200 components."""
     fx = load_transform(d)
     res = []
     lda_components = [50,100,200]
