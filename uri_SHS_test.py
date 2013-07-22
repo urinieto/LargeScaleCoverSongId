@@ -195,7 +195,7 @@ def main():
     codesdir = args.codesdir[0]
     if codesdir is not None:
         feats, track_ids, clique_ids = load_codes(codesdir, 
-                                                lda_idx=args.codesdir[1])
+                                                lda_idx=int(args.codesdir[1]))
         #c = utils.load_pickle(codesdir)
         #feats = c[0]
         #track_ids = c[1]
