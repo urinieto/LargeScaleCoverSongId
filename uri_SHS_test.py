@@ -195,11 +195,11 @@ def main():
     # read codes file
     codesdir = args.codesdir
     if codesdir is not None:
-        #feats, track_ids, clique_ids = load_codes(codesdir, lda_idx=2)
-        c = utils.load_pickle(codesdir)
-        feats = c[0]
-        track_ids = c[1]
-        clique_ids = c[2]
+        feats, track_ids, clique_ids = load_codes(codesdir, lda_idx=0)
+        #c = utils.load_pickle(codesdir)
+        #feats = c[0]
+        #track_ids = c[1]
+        #clique_ids = c[2]
         logger.info("Codes files read")
     else:
         # read LDA file
