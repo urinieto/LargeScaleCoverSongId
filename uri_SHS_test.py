@@ -117,20 +117,21 @@ def load_codes(codesdir, lda_idx):
     elif lda_idx == 2:
         n_comp = 200
     feats = np.empty((0,n_comp))
+    #feats = np.empty((0,2045))
     track_ids = []
     clique_ids = []
     for code_file in code_files:
         codes = utils.load_pickle(code_file)
         feats = np.append(feats, codes[0][lda_idx], axis=0)
+        #feats = np.append(feats, codes[0], axis=0)
         track_ids += codes[1]
         clique_ids += list(codes[2])
 
     track_ids = np.asarray(track_ids)
     clique_ids = np.asarray(clique_ids)
 
-    f = open("msd_codes_" + str(n_comp) + ".pk", "w")
-    cPickle.dump((feats,track_ids,clique_ids), f, protocol=1)
-    f.close()
+    #utils.save_pickle((feats,track_ids,clique_ids), 
+    #                    "msd_codes_" + str(n_comp) + ".pk")
 
     return feats, track_ids, clique_ids
 
@@ -189,16 +190,16 @@ def main():
     # TODO: Not needed? Do as in train file.
     # read cliques and all tracks
     cliques, all_tracks = utils.read_shs_file(shsf)
+    track_ids = utils.load_pickle("SHS/track_ids_test.pk")
+    clique_ids = utils.load_pickle("SHS/clique_ids_test.pk")
 
     # read codes file
     codesdir = args.codesdir[0]
     if codesdir is not None:
-        feats, track_ids, clique_ids = load_codes(codesdir, 
-                                                lda_idx=int(args.codesdir[1]))
-        #c = utils.load_pickle(codesdir)
-        #feats = c[0]
-        #track_ids = c[1]
-        #clique_ids = c[2]
+        #feats, track_ids, clique_ids = load_codes(codesdir, 
+        #                                        lda_idx=int(args.codesdir[1]))
+        c = utils.load_pickle(codesdir)
+        feats = c[0]
         logger.info("Codes files read")
     else:
         # read LDA file
@@ -208,8 +209,6 @@ def main():
             logger.info("LDA file read") 
 
         utils.assert_file(args.dictfile)
-        track_ids = utils.load_pickle("SHS/track_ids_test.pk")
-        clique_ids = utils.load_pickle("SHS/clique_ids_test.pk")
         compute_codes(track_ids, maindir, args.dictfile, args.N, clique_ids, 
             lda_file)
         logger.info("Codes computation done!")

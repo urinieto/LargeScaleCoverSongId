@@ -10,6 +10,7 @@ import logging
 import numpy as np
 import os
 import pylab as plt
+import dan_tools
 from sklearn.lda import LDA
 
 # local files
