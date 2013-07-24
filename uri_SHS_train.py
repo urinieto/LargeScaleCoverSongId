@@ -63,6 +63,7 @@ def compute_feats(track_ids, maindir, d, lda_file=None, lda_n=0, codes=None,
         codes = np.ones((len(track_ids),K)) * np.nan
     else:
         compute_codes = False
+        K = codes[0].shape[0]
     if lda_file is not None:
         if lda_n == 0: n_comp = 50
         elif lda_n == 1: n_comp = 100
