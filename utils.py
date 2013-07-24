@@ -163,10 +163,25 @@ def extract_feats(filename):
     # return the non-normalized features (L, 900)
     return feats.T
 
-def fit_LDA_from_codes_file(codes_file):
+def fit_LDA_from_codes_file(codes_file, msd=False):
     """Fits and LDA from a codes file and saves it into a new pickle file."""
-    clique_idx = load_pickle("SHS/clique_ids_train.pk")
     codes = load_pickle(codes_file)
+
+    if msd:
+        # Get only the training set
+        clique_idx_test = load_pickle("SHS/clique_ids_test.pk")
+        track_idx_test = load_pickle("SHS/track_ids_test.pk")
+        track_idx_train = load_pickle("SHS/track_ids_train.pk")
+
+        # Find subset
+        ix = np.in1d( track_ids_test, track_ids)
+        idxs = np.where(ix)
+
+        # Get subset
+        clique_idx = clique_idx_test[idxs]
+        codes = codes[idxs]
+    else:
+        clique_idx = load_pickle("SHS/clique_ids_train.pk")
 
     # Remove nans
     nan_idx = np.unique(np.where(np.isnan(codes))[0])

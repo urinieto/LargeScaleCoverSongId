@@ -229,6 +229,8 @@ def plot_precision_at_k_histograms(stats1, stats2, K=[1,3,5,10], test=True):
     plt.xlabel("k")
     plt.ylabel("Precision @ k")
     plt.xticks(xrange(0,len(K)), ("1", "3", "5", "10"))
+    ylabels = np.arange(0,3.6,0.5)*10
+    plt.yticks(np.arange(0,3.6,0.5)*.1, ylabels.astype(int))
     plt.legend(loc="upper right")
     plt.show()
 
@@ -254,7 +256,7 @@ def process(statsfile, k, optfile=None):
     if optfile is not None:
         stats2 = utils.load_pickle(optfile)
         #plot_rank_histograms(stats, stats2, test=False) 
-        plot_precision_at_k_histograms(stats, stats2, K=[1,3,5,10], test=True)
+        plot_precision_at_k_histograms(stats, stats2, K=[1,3,5,10], test=False)
     else:
         plot_rank_histogram(stats)
 

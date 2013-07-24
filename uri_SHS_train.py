@@ -80,6 +80,8 @@ def compute_feats(track_ids, maindir, d, lda_file=None, lda_n=0, codes=None,
             # 3.- Shingle (PATCH_LEN: 75 x 12)
             # 4.- 2D-FFT
             feats = utils.extract_feats(path)
+            #plt.imshow(feats[100].reshape(12,75),interpolation="nearest", aspect="auto"); plt.show()
+            #plt.imshow(feats,interpolation="nearest", aspect="auto"); plt.show()
             if feats == None:
                 continue
             if d != "":
@@ -91,10 +93,12 @@ def compute_feats(track_ids, maindir, d, lda_file=None, lda_n=0, codes=None,
             else:
                 H = feats
             #. 9.- Median Aggregation
+            #plt.imshow(H,interpolation="nearest", aspect="auto"); plt.show()
             H = np.median(H, axis=0)
         else:
             H = codes[cnt]
 
+        #plt.imshow(H[np.newaxis,:],interpolation="nearest", aspect="auto"); plt.show()
         if compute_codes:
             codes[cnt] = H.copy()
 
@@ -103,6 +107,7 @@ def compute_feats(track_ids, maindir, d, lda_file=None, lda_n=0, codes=None,
             # 10.- Dimensionality Reduction
             H = lda_file[lda_n].transform(H)
 
+        #plt.imshow(H[np.newaxis,:],interpolation="nearest", aspect="auto"); plt.show()
         # 11.- L2-Norm
         final_feats[cnt] = dan_tools.chromnorm(H.reshape(H.shape[0], 1)).squeeze()
 
@@ -189,6 +194,7 @@ def main():
     clique_ids = np.asarray(utils.compute_clique_idxs(track_ids, cliques))
     logger.info("Track ids and clique ids read")
     utils.save_pickle(clique_ids, "SHS/clique_ids_train.pk")
+    utils.save_pickle(track_ids, "SHS/track_ids_train.pk")
 
     # read LDA file
     lda_file = args.lda[0]

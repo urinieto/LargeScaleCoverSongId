@@ -10,6 +10,7 @@ from sklearn.decomposition import PCA
 import os
 import cPickle
 from scipy.cluster.vq import kmeans
+import pylab as plt
 #from deeplearn.core.initialization import online_vq
 
 DC_INDEX = 450
@@ -153,6 +154,7 @@ class PCATransform(Transform):
         
         assert X.shape[1]==F_DIM
         Z = self.pca.transform(self._preprocess(X))
+        #plt.imshow(Z, interpolation="nearest", aspect="auto"); plt.show()
         if flatten:
             Z = Z.squeeze()
         return Z
