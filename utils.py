@@ -171,9 +171,10 @@ def fit_LDA_from_codes_file(codes_file, msd=False):
         clique_idx_test = load_pickle("SHS/clique_ids_test.pk")
         track_idx_test = load_pickle("SHS/track_ids_test.pk")
         track_idx_train = load_pickle("SHS/track_ids_train.pk")
+        print "PUTA", clique_idx_test
 
         # Find subset
-        ix = np.in1d( track_ids_test, track_ids)
+        ix = np.in1d( track_idx_test, track_idx_train)
         idxs = np.where(ix)
 
         # Get subset
@@ -182,20 +183,23 @@ def fit_LDA_from_codes_file(codes_file, msd=False):
         N = 0
         codes = []
         start_idx = 0
-        for code_f in code_files:
+        for code_f in code_files[:1]:
+            print "Reading file %s" % code_f
             c = load_pickle(code_f)
             for idx in idxs[0]:
                 if idx >= (N+1)*10000:
                     break
                 if idx < N*10000:
                     continue
-                codes.append(c[0][idx])
-                print c[1][idx], trac_idx_test[idx]
+                codes.append(c[0][idx%10000])
+                assert c[1][idx%10000] == track_idx_test[idx]
             N += 1
-        codes = codes[idxs]
+        codes = np.asarray(codes)
     else:
         clique_idx = load_pickle("SHS/clique_ids_train.pk")
         codes = load_pickle(codes_file)
+
+    print clique_idx
 
     # Remove nans
     nan_idx = np.unique(np.where(np.isnan(codes))[0])
@@ -211,6 +215,24 @@ def fit_LDA_from_codes_file(codes_file, msd=False):
     f = open(codes_file.strip(".pk") + "_LDAs.pk", "w")
     cPickle.dump(res, f, protocol=1)
     f.close()
+
+def compute_LDA_from_full(full_dir, lda_file, out_dir):
+    code_files = glob.glob(os.path.join(full_dir, "*.pk"))
+    lda = load_pickle(lda_file)
+    for code_f in code_files:
+        codes = load_pickle(code_f)
+        lda0 = []
+        lda1 = []
+        lda2 = []
+        for code in codes[0]:
+            tmp = lda[0].transform(code)
+            lda0.append(dan_tools.chromnorm(tmp.reshape(tmp.shape[0], 
+                                    1)).squeeze())
+
+            out.append(lda[0].transform(c[0]))
+            out.append(lda[0].transform(c[1]))
+            out.append(lda[0].transform(c[2]))
+
 
 def extract_track_ids(maindir):
     """Extracts all the track ids from an MSD structure."""

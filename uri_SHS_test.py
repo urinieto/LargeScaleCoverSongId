@@ -103,7 +103,7 @@ def compute_codes(track_ids, maindir, d, N, clique_ids, lda):
         else:
             codes = compute_codes_it(track_ids, maindir, d, clique_ids, lda,
                 start_idx, end_idx)
-            out_file = "msd_codes/" + str(N) + str(it) + "-msd-codes.pk"
+            out_file = "msd_codes_bona/" + str(N) + str(it) + "-msd-codes.pk"
         f = open(out_file, "w")
         cPickle.dump(codes, f, protocol=1)
         f.close()
@@ -116,14 +116,14 @@ def load_codes(codesdir, lda_idx):
         n_comp = 100
     elif lda_idx == 2:
         n_comp = 200
-    #feats = np.empty((0,n_comp))
-    feats = np.empty((0,2045))
+    feats = np.empty((0,n_comp))
+    #feats = np.empty((0,2045))
     track_ids = []
     clique_ids = []
     for code_file in code_files:
         codes = utils.load_pickle(code_file)
-        #feats = np.append(feats, codes[0][lda_idx], axis=0)
-        feats = np.append(feats, codes[0], axis=0)
+        feats = np.append(feats, codes[0][lda_idx], axis=0)
+        #feats = np.append(feats, codes[0], axis=0)
         track_ids += codes[1]
         clique_ids += list(codes[2])
 
@@ -196,10 +196,10 @@ def main():
     # read codes file
     codesdir = args.codesdir[0]
     if codesdir is not None:
-        #feats, track_ids, clique_ids = load_codes(codesdir, 
-        #                                        lda_idx=int(args.codesdir[1]))
-        c = utils.load_pickle(codesdir)
-        feats = c[0]
+        feats, track_ids, clique_ids = load_codes(codesdir, 
+                                                lda_idx=int(args.codesdir[1]))
+        #c = utils.load_pickle(codesdir)
+        #feats = c[0]
         logger.info("Codes files read")
     else:
         # read LDA file
