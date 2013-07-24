@@ -116,14 +116,14 @@ def load_codes(codesdir, lda_idx):
         n_comp = 100
     elif lda_idx == 2:
         n_comp = 200
-    feats = np.empty((0,n_comp))
-    #feats = np.empty((0,2045))
+    #feats = np.empty((0,n_comp))
+    feats = np.empty((0,2045))
     track_ids = []
     clique_ids = []
     for code_file in code_files:
         codes = utils.load_pickle(code_file)
-        feats = np.append(feats, codes[0][lda_idx], axis=0)
-        #feats = np.append(feats, codes[0], axis=0)
+        #feats = np.append(feats, codes[0][lda_idx], axis=0)
+        feats = np.append(feats, codes[0], axis=0)
         track_ids += codes[1]
         clique_ids += list(codes[2])
 
