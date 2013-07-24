@@ -92,18 +92,24 @@ def compute_codes(track_ids, maindir, d, N, clique_ids, lda):
             if N = 1: tracks computed: from 100,000 to 199,999
             if N = 5: tracks computed: from 500,000 to 599,999
     """
+    MAX     = 1e5 / 2
+    ITER    = 1e4 / 2
     for it in xrange(10):
         logger.info("Computing %d of 10 iteration" % it)
-        start_idx = int(N*1e5 + it*1e4)
-        end_idx = int(start_idx + 1e4)
+        start_idx = int(N*MAX + it*ITER)
+        end_idx = int(start_idx + ITER)
+        codes = []
+        strN = str(N)
+        if N < 10:
+            strN = "0" + str(N)
         if lda is None:
             codes = compute_codes_orig_it(track_ids, maindir, clique_ids,
                 start_idx, end_idx)
-            out_file = "msd_codes_orig/" + str(N) + str(it) + "-msd-codes.pk"
+            out_file = "msd_codes_orig/" + strN + str(it) + "-msd-codes.pk"
         else:
             codes = compute_codes_it(track_ids, maindir, d, clique_ids, lda,
                 start_idx, end_idx)
-            out_file = "msd_codes_bona/" + str(N) + str(it) + "-msd-codes.pk"
+            out_file = "msd_codes_bona/" + strN + str(it) + "-msd-codes.pk"
         f = open(out_file, "w")
         cPickle.dump(codes, f, protocol=1)
         f.close()
