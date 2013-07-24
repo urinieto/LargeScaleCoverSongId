@@ -165,7 +165,6 @@ def extract_feats(filename):
 
 def fit_LDA_from_codes_file(codes_file, msd=False):
     """Fits and LDA from a codes file and saves it into a new pickle file."""
-    codes = load_pickle(codes_file)
 
     if msd:
         # Get only the training set
@@ -179,9 +178,24 @@ def fit_LDA_from_codes_file(codes_file, msd=False):
 
         # Get subset
         clique_idx = clique_idx_test[idxs]
+        code_files = glob.glob(os.path.join(codes_file, "*.pk"))
+        N = 0
+        codes = []
+        start_idx = 0
+        for code_f in code_files:
+            c = load_pickle(code_f)
+            for idx in idxs[0]:
+                if idx >= (N+1)*10000:
+                    break
+                if idx < N*10000:
+                    continue
+                codes.append(c[0][idx])
+                print c[1][idx], trac_idx_test[idx]
+            N += 1
         codes = codes[idxs]
     else:
         clique_idx = load_pickle("SHS/clique_ids_train.pk")
+        codes = load_pickle(codes_file)
 
     # Remove nans
     nan_idx = np.unique(np.where(np.isnan(codes))[0])
