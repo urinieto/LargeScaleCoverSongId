@@ -23,7 +23,7 @@ In Proc. of the 14th International Society for Music Information Retrieval
 Conference. Curitiba, Brazil.
 
 Created by Thierry Bertin-Mahieux (tb2332@columbia.edu)
-Modified by Oriol Nieto (oriol@nyu.edu)
+Modified by Uri Nieto (oriol@nyu.edu)
 
 ----
 This code is distributed under the GNU LESSER PUBLIC LICENSE 

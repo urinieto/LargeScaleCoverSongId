@@ -1,6 +1,69 @@
 #!/usr/bin/env python
 """
-Test with meanAP and average rank
+This script computes the features necessary to achieve the results on the SHS
+training set reported in the paper:
+
+Humphrey, E. J., Nieto, O., & Bello, J. P. (2013). Data Driven and 
+Discriminative Projections for Large-Scale Cover Song Identification. In Proc. 
+of the 14th International Society for Music Information Retrieval Conference. 
+Curitiba, Brazil.
+
+A previously learned dictionary to convert the 2D-FMC features into codes clean_feats
+be found in "models/BasisProjection2_ke2045_actEdot_shkE0x200_anormETrue.pk".
+
+To use it, run the script as follows:
+./cover_id_train.py -dictfile models/BasisProjection2_ke2045_actEdot_shkE0x200_anormETrue.pk
+
+The PCA transform previously learned by Thierry can be found in:
+"models/pca_250Kexamples_900dim_nocovers.pkl"
+
+To use it, with an N number of dimensions, run the script as follows:
+./cover_id_train.py -pca models/pca_250Kexamples_900dim_nocovers.pkl N
+
+Th script saves the provisional codes in "results/codes-$DICTNAME$.pk". To learn
+a LDA transform based on the codes, use the function "fit_LDA_from_codes_file"
+in the utils.py file.
+
+For more info, run:
+./cover_id_train.py -h
+
+----
+Authors: 
+Uri Nieto (oriol@nyu.edu)
+Eric J. Humphrey (ejhumphrey@nyu.edu)
+
+----
+License:
+This code is distributed under the GNU LESSER PUBLIC LICENSE 
+(LGPL, see www.gnu.org).
+
+Copyright (c) 2012-2013 MARL@NYU.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+  a. Redistributions of source code must retain the above copyright notice,
+     this list of conditions and the following disclaimer.
+  b. Redistributions in binary form must reproduce the above copyright
+     notice, this list of conditions and the following disclaimer in the
+     documentation and/or other materials provided with the distribution.
+  c. Neither the name of MARL, NYU nor the names of its contributors
+     may be used to endorse or promote products derived from this software
+     without specific prior written permission.
+
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+DAMAGE.
 """
 
 import argparse
@@ -81,8 +144,6 @@ def compute_feats(track_ids, maindir, d, lda_file=None, lda_n=0, codes=None,
             # 3.- Shingle (PATCH_LEN: 75 x 12)
             # 4.- 2D-FFT
             feats = utils.extract_feats(path)
-            #plt.imshow(feats[100].reshape(12,75),interpolation="nearest", aspect="auto"); plt.show()
-            #plt.imshow(feats,interpolation="nearest", aspect="auto"); plt.show()
             if feats == None:
                 continue
             if d != "":
@@ -94,12 +155,10 @@ def compute_feats(track_ids, maindir, d, lda_file=None, lda_n=0, codes=None,
             else:
                 H = feats
             #. 9.- Median Aggregation
-            #plt.imshow(H,interpolation="nearest", aspect="auto"); plt.show()
             H = np.median(H, axis=0)
         else:
             H = codes[cnt]
 
-        #plt.imshow(H[np.newaxis,:],interpolation="nearest", aspect="auto"); plt.show()
         if compute_codes:
             codes[cnt] = H.copy()
 
@@ -108,7 +167,6 @@ def compute_feats(track_ids, maindir, d, lda_file=None, lda_n=0, codes=None,
             # 10.- Dimensionality Reduction
             H = lda_file[lda_n].transform(H)
 
-        #plt.imshow(H[np.newaxis,:],interpolation="nearest", aspect="auto"); plt.show()
         # 11.- L2-Norm
         final_feats[cnt] = dan_tools.chromnorm(H.reshape(H.shape[0], 1)).squeeze()
 
@@ -118,12 +176,12 @@ def compute_feats(track_ids, maindir, d, lda_file=None, lda_n=0, codes=None,
                             (cnt/float(len(track_ids)) * 100))
 
     if d == "":
-        d = "thierry" # For saving purposes
+        d = "orig" # For saving purposes
     
     # Save codes
     utils.create_dir("results")
     if compute_codes:
-        utils.save_pickle(codes, "results/codes2-" + os.path.basename(d) + ".pk")
+        utils.save_pickle(codes, "results/codes-" + os.path.basename(d) + ".pk")
 
     # Save features
     utils.save_pickle(final_feats, "results/feats-" + os.path.basename(d) + ".pk")
