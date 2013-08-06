@@ -219,18 +219,18 @@ def plot_precision_at_k_histograms(stats1, stats2, K=[1,3,5,10], test=True):
     fig = plt.figure()
     ax = fig.gca()
     width = 0.45
-    ax.bar(np.arange(len(K))-width/2, P1, width=width, color='b', 
+    ax.bar(np.arange(len(K))-width/2, P1, width=width, color='0.75', 
         label=label1, align="center")
-    ax.bar(np.arange(len(K))+width/2, P2, width=width, color='g', 
-        label=label2, align="center")
+    ax.bar(np.arange(len(K))+width/2, P2, width=width, color='0.9', 
+        label=label2, align="center", hatch='//')
 
     # Plot histogram as PDF
-    plt.title(title)
+    #plt.title(title)
     plt.xlabel("k")
     plt.ylabel("Precision @ k")
     plt.xticks(xrange(0,len(K)), ("1", "3", "5", "10"))
-    ylabels = np.arange(0,3.6,0.5)*10
-    plt.yticks(np.arange(0,3.6,0.5)*.1, ylabels.astype(int))
+    ylabels = np.arange(0,3.,0.5)*10
+    plt.yticks(np.arange(0,3.,0.5)*.1, ylabels.astype(int))
     plt.legend(loc="upper right")
     plt.show()
 

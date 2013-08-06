@@ -1,7 +1,9 @@
 Large Scale Cover Song Identification
 =====================================
 
-Source code for the article "Data Driven and Discriminative Projections for Large-Scale Cover Song Identification"
+Source code for the article "Data Driven and Discriminative Projections for 
+Large-Scale Cover Song Identification" by Eric J. Humphrey, Oriol Nieto, and 
+Juan P. Bello.
 
 Requirements
 ============
