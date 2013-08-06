@@ -48,6 +48,12 @@ Recognition Using The 2D Fourier Transform Magnitude. In Proc. of the 13th
 International Society for Music Information Retrieval Conference (pp. 241-246).
 Porto, Portugal.
 
+Acknowledgments
+===============
+
+Thanks to Thierry Bertin-Mahieux (tb2332@columbia.edu) for sharing his code
+and letting us publish it under the LGPL.
+
 License
 =======
 
