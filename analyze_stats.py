@@ -16,7 +16,44 @@ The results this script computes are:
 Plotting:
 - Rank histograms (one or two stats files)
 
-Created by Oriol Nieto (oriol@nyu.edu), 2013"""
+----
+Authors: 
+Uri Nieto (oriol@nyu.edu)
+Eric J. Humphrey (ejhumphrey@nyu.edu)
+
+----
+License:
+This code is distributed under the GNU LESSER PUBLIC LICENSE 
+(LGPL, see www.gnu.org).
+
+Copyright (c) 2012-2013 MARL@NYU.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+  a. Redistributions of source code must retain the above copyright notice,
+     this list of conditions and the following disclaimer.
+  b. Redistributions in binary form must reproduce the above copyright
+     notice, this list of conditions and the following disclaimer in the
+     documentation and/or other materials provided with the distribution.
+  c. Neither the name of MARL, NYU nor the names of its contributors
+     may be used to endorse or promote products derived from this software
+     without specific prior written permission.
+
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+DAMAGE.
+"""
 
 import argparse
 import cPickle
@@ -219,18 +256,18 @@ def plot_precision_at_k_histograms(stats1, stats2, K=[1,3,5,10], test=True):
     fig = plt.figure()
     ax = fig.gca()
     width = 0.45
-    ax.bar(np.arange(len(K))-width/2, P1, width=width, color='b', 
+    ax.bar(np.arange(len(K))-width/2, P1, width=width, color='0.75', 
         label=label1, align="center")
-    ax.bar(np.arange(len(K))+width/2, P2, width=width, color='g', 
-        label=label2, align="center")
+    ax.bar(np.arange(len(K))+width/2, P2, width=width, color='0.9', 
+        label=label2, align="center", hatch='//')
 
     # Plot histogram as PDF
-    plt.title(title)
+    #plt.title(title)
     plt.xlabel("k")
     plt.ylabel("Precision @ k")
     plt.xticks(xrange(0,len(K)), ("1", "3", "5", "10"))
-    ylabels = np.arange(0,3.6,0.5)*10
-    plt.yticks(np.arange(0,3.6,0.5)*.1, ylabels.astype(int))
+    ylabels = np.arange(0,3.,0.5)*10
+    plt.yticks(np.arange(0,3.,0.5)*.1, ylabels.astype(int))
     plt.legend(loc="upper right")
     plt.show()
 
