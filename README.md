@@ -28,6 +28,13 @@ represented by a 12x75 vector), type:
 
 The result, as reported in (Thierry et. al 2012), should be 82.2%.
 
+To run the task with a Principal Component Analysis (PCA) of 50 components:
+
+	./binary_task.py path_to_MSD -pca models/pca_250Kexamples_900dim_nocovers.pkl 50
+
+This package already provides a previously learned PCA transformation (
+`models/pca_250Kexamples_900dim_nocovers.pkl`).
+
 Requirements
 ============
 
