@@ -7,9 +7,9 @@ Juan P. Bello. ISMIR, Curitiba, Brazil, 2013.
 
 This project includes three main tasks:
 
-- Binary Task: Analyze 500 tracks as described in (Thierry et. al 2012).
-- Cover Song ID in Second Hand Song Training Set (~12,000 songs on themselves).
-- Cover Song ID in Second Hand Song Test Set (~5,000 songs on 1,000,000).
+- *Binary Task*: Analyze 500 tracks as described in (Thierry et al. 2012).
+- *Cover Song ID in Second Hand Song Training Set* (~12,000 songs on themselves).
+- *Cover Song ID in Second Hand Song Test Set* (~5,000 songs on 1,000,000).
 
 Tasks
 =====
@@ -26,7 +26,7 @@ represented by the full 12x75 vector), type:
 
 	./binary_task.py path_to_MSD
 
-The result, as reported in (Thierry et. al 2012), should be 82.0%.
+The result, as reported in (Thierry et al. 2012), should be 82.0%.
 
 This package already provides a previously learned Principal Component Analysis
 transformation (`models/pca_250Kexamples_900dim_nocovers.pkl`). To run the task 
@@ -34,7 +34,7 @@ with a PCA of 50 components:
 
 	./binary_task.py path_to_MSD -pca models/pca_250Kexamples_900dim_nocovers.pkl 50
 
-This should result in 82.2%, as reported in (Thierry et. al 2012).
+This should result in 82.2%, as reported in (Thierry et al. 2012).
 
 To run the test using a dictionary to project the data into a (hopefully) more
 separable space, we include a dictionary 
@@ -53,7 +53,32 @@ n == 2 is 200 dimensions.
 Cover Song ID in Training
 -------------------------
 
-TODO
+This task computes the Mean Average Precision (MAP) and the Average Rank (AR) of 12,960 tracks from the Second Hand Song dataset. These tracks are the ones selected
+for _training_, and are listed in `SHS/shs_dataset_train.txt`.
+
+To run the task without any dimensionality reduction (i.e. each track is 
+represented by the full 12x75 vector), type:
+
+	./cover_id_train.py path_to_MSD
+
+The result should be exactly the same as the one reported by (Thierry et al.
+2012): AR = 3096.7, MAP = 8.912%.
+
+To apply PCA of 200 on these full features:
+
+	./cover_id_train.py path_to_MSD -pca models/pca_250Kexamples_900dim_nocovers.pkl 200
+
+which should result in AR = 3005.1, MAP = 9.475%, as reported in (Thierry et 
+al. 2012).
+
+To apply a dictionary of k = 2045:
+	
+	./cover_id_train.py path_to_MSD -dictfile models/BasisProjection2_kE2045_actEdot_shkE0x200_anormETrue.pk
+
+This should result in AR = 3026, MAP = 5.51%, as reported in (Humphrey et al.
+2013).
+
+
 
 Cover Song ID in Test
 ---------------------
