@@ -49,6 +49,16 @@ To add Linear Discriminative Analysis to the new projected space:
 where `n` is the index number of the model. In the given model (`models/lda-kE2045-shkE0x200.pk`), n == 0 represents 50 dimensions, n == 1 is 100 dimensions, and
 n == 2 is 200 dimensions.
 
+Cover Song ID in Training
+-------------------------
+
+TODO
+
+Cover Song ID in Test
+---------------------
+
+TODO
+
 
 Requirements
 ============
