@@ -22,18 +22,33 @@ the two is actually a cover of the given track. The list of tracks for this task
 is found in the file `SHS/list_500queries.txt`.
 
 To run the task without any dimensionality reduction (i.e. each track is 
-represented by a 12x75 vector), type:
+represented by the full 12x75 vector), type:
 
 	./binary_task.py path_to_MSD
 
-The result, as reported in (Thierry et. al 2012), should be 82.2%.
+If you add the flag `-orig`, the result, as reported in (Thierry et. al 2012), should be 82.0%.
 
-To run the task with a Principal Component Analysis (PCA) of 50 components:
+This package already provides a previously learned Principal Component Analysis
+transformation (`models/pca_250Kexamples_900dim_nocovers.pkl`). To run the task 
+with a PCA of 50 components:
 
 	./binary_task.py path_to_MSD -pca models/pca_250Kexamples_900dim_nocovers.pkl 50
 
-This package already provides a previously learned PCA transformation (
-`models/pca_250Kexamples_900dim_nocovers.pkl`).
+This should result in 82.2% if using the `-orig` flag, as reported in (Thierry 
+et. al 2012).
+
+To run the test using a dictionary to project the data into a (hopefully) more
+separable space:
+
+	./binary_task.py MSD -dictfile models/BasisProjection2_kE2045_actEdot_shkE0x200_anormETrue.pk
+
+To add Linear Discriminative Analysis to the new projected space:
+
+	./binary_task.py MSD -dictfile models/BasisProjection2_kE2045_actEdot_shkE0x200_anormETrue.pk -lda models/lda-kE2045-shkE0x200.pk n
+
+where `n` is the index number of the model. In the given model (`models/lda-kE2045-shkE0x200.pk`), n == 0 represents 50 dimensions, n == 1 is 100 dimensions, and
+n == 2 is 200 dimensions.
+
 
 Requirements
 ============

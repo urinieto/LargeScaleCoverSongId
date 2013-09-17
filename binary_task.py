@@ -70,28 +70,68 @@ import pca
 import hdf5_getters as GETTERS
 import dan_tools
 import utils
+from transforms import load_transform
 
 # Thierry's original parameters for ISMIR paper
 WIN = 75
 PWR = 1.96
+PATCH_LEN = WIN*12
 
 # Set up logger
 logger = utils.configure_logger()
 
-def extract_feats(filename, feats, track_ids, lda=None):
-    """
-    Finds the filename inside track_id and returns its correspondent features
-    from feats
-    """
+def extract_feats_new(filename, d, lda_file=None, lda_n=0, ver=True):
+    """Computes the features using the dictionary d. If it doesn't exist, 
+     computes them using Thierry's method.
 
-    try:
-        feat = feats[track_ids.index(filename)]
-        if lda != None:
-            feat = lda[0].transform(feat)
-        feat = dan_tools.chromnorm(feat.reshape(feat.shape[0], 1)).squeeze()
-        return feat
-    except:
+     The improved pipeline is composed of 11 steps:
+
+        1.- Beat Synchronous Chroma
+        2.- L2-Norm
+        3.- Shingle (PATCH_LEN: 75 x 12)
+        4.- 2D-FFT
+        5.- L2-Norm
+        6.- Log-Scale
+        7.- Sparse Coding
+        8.- Shrinkage
+        9.- Median Aggregation
+        10.- Dimensionality Reduction
+        11.- L2-Norm
+
+    Original method by Thierry doesn't include steps 5,6,7,8,11.
+     """
+    if d != "":
+        fx = load_transform(d)
+    
+    # 1.- Beat Synchronous Chroma
+    # 2.- L2-Norm
+    # 3.- Shingle (PATCH_LEN: 75 x 12)
+    # 4.- 2D-FFT
+    feats = utils.extract_feats(filename)
+    if feats is None:
         return None
+
+    if d != "":
+        # 5.- L2-Norm
+        # 6.- Log-Scale
+        # 7.- Sparse Coding
+        # 8.- Shrinkage
+        H = fx(feats)
+    else:
+        H = feats
+
+    #. 9.- Median Aggregation
+    H = np.median(H, axis=0)
+
+    # Apply LDA if needed
+    if lda_file is not None:
+        # 10.- Dimensionality Reduction
+        H = lda_file[lda_n].transform(H)
+
+    # 11.- L2-Norm
+    feats = dan_tools.chromnorm(H.reshape(H.shape[0], 1)).squeeze()
+
+    return feats
 
 
 def extract_feats_orig(filename):
@@ -153,10 +193,13 @@ def main():
                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("msd_dir", action="store",
                         help="Million Song Dataset main directory")
-    parser.add_argument("-f", action="store", dest="features",
-                        help="cPickle file containing the features.")
-    parser.add_argument("-lda", action="store", dest="lda", default=None,
-                        help="cPickle file containing the LDA transform.")
+    parser.add_argument("-dictfile", action="store", default="",
+                        help="Pickle to the learned dictionary")
+    parser.add_argument("-lda", action="store", nargs=2, default=[None,0], 
+                        help="LDA file and version", metavar=('lda.pkl', 'n'))
+    parser.add_argument("-orig", action="store_true", default=False, 
+                        dest="orig", help="Compute features using the " \
+                        "original Thierry method")
     parser.add_argument("-pca", nargs=2, metavar=('f.pkl', 'n'), 
                         default=("", 0),
                         help="pca model saved in a pickle file, " \
@@ -170,7 +213,8 @@ def main():
     maindir = args.msd_dir
     queriesf = "SHS/list_500queries.txt"
     shsf = "SHS/shs_dataset_train.txt"
-    lda = args.lda
+    lda = args.lda[0]
+    lda_n = int(args.lda[1])
     pcafile = args.pca[0]
     pcadim = int(args.pca[1])
 
@@ -183,15 +227,6 @@ def main():
     # read queries
     queries = read_query_file(queriesf)
 
-    # read clique ids and track ids
-    cliques, all_tracks = utils.read_shs_file(shsf)
-    track_ids = all_tracks.keys()
-    clique_ids = np.asarray(utils.compute_clique_idxs(track_ids, cliques))
-    logger.info("Track ids and clique ids read")
-
-    # read track ids
-    #feats = utils.load_pickle(args.features)
-
     # load pca
     trainedpca = None
     if pcafile != "":
@@ -201,29 +236,36 @@ def main():
         assert pcadim > 0
         logger.info('trained pca loaded')
 
+    # load lda
     if lda != None:
-        lda = utils.load_pickle(args.lda)
+        lda = utils.load_pickle(lda)
 
     # to keep stats
-    results = [] 
+    results = []
 
     # iterate over queries
     logger.info("Starting the binary task...")
     for triplet in queries:
         # get features
-        #triplet_feats = map(lambda f: extract_feats(f, feats, track_ids, lda), 
-        #                    triplet)
         filenames = map(lambda tid: utils.path_from_tid(maindir, tid), triplet)
-        triplet_feats = map(lambda f: extract_feats_orig(f), filenames)
+
+        # Compute features
+        if args.orig:
+            triplet_feats = map(lambda f: extract_feats_orig(f), filenames)
+        else:
+            triplet_feats = map(lambda f: extract_feats_new(f, args.dictfile, 
+                                    lda_file=lda, lda_n=lda_n), filenames)
         if None in triplet_feats:
             continue
-        # apply pca?
+
+        # Apply pca if needed
         if trainedpca:
             triplet_feats = map(lambda feat: \
                                 trainedpca.apply_newdata(feat, ndims=pcadim),
                                 triplet_feats)
             assert triplet_feats[np.random.randint(3)].shape[0] == pcadim
-        # did we get it right?
+        
+        # Compute result
         res1 = triplet_feats[0] - triplet_feats[1]
         res1 = np.sum(res1 * res1)
         res2 = triplet_feats[0] - triplet_feats[2]
@@ -232,8 +274,9 @@ def main():
             results.append(1)
         else:
             results.append(0)
+            
         # verbose
-        if len(results) % 50 == 0:
+        if len(results) % 5 == 0:
             logger.info(' --- after %d queries, accuracy: %.1f %%' % \
                             (len(results), 100. * np.mean(results)))
     # done
