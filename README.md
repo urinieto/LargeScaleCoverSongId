@@ -37,7 +37,9 @@ with a PCA of 50 components:
 This should result in 82.2%, as reported in (Thierry et. al 2012).
 
 To run the test using a dictionary to project the data into a (hopefully) more
-separable space:
+separable space, we include a dictionary 
+(`models/BasisProjection2_kE2045_actEdot_shkE0x200_anormETrue.pk`) that can be
+used like this:
 
 	./binary_task.py path_to_MSD -dictfile models/BasisProjection2_kE2045_actEdot_shkE0x200_anormETrue.pk
 

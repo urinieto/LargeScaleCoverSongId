@@ -173,9 +173,6 @@ def main():
                         help="Pickle to the learned dictionary")
     parser.add_argument("-lda", action="store", nargs=2, default=[None,0], 
                         help="LDA file and version", metavar=('lda.pkl', 'n'))
-    parser.add_argument("-orig", action="store_true", default=False, 
-                        dest="orig", help="Compute features using the " \
-                        "original Thierry method")
     parser.add_argument("-pca", nargs=2, metavar=('f.pkl', 'n'), 
                         default=("", 0),
                         help="pca model saved in a pickle file, " \
@@ -224,7 +221,7 @@ def main():
     for triplet in queries:
         # get features
         filenames = map(lambda tid: utils.path_from_tid(maindir, tid), triplet)
-        triplet_feats = map(lambda f: extract_feats_new(f, args.dictfile, 
+        triplet_feats = map(lambda f: extract_feats(f, args.dictfile, 
                                     lda_file=lda, lda_n=lda_n), filenames)
         if None in triplet_feats:
             continue
