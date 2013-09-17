@@ -11,8 +11,8 @@ This project includes three main tasks:
 - Cover Song ID in Second Hand Song Training Set (~12,000 songs on themselves).
 - Cover Song ID in Second Hand Song Test Set (~5,000 songs on 1,000,000).
 
-Features
-========
+Tasks
+=====
 
 Binary Task
 -----------
