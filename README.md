@@ -18,8 +18,15 @@ Binary Task
 -----------
 
 This task compares one given track against two others and decides which one of
-the two is actually a cover of the given track. The list of tracks is found
-in the file `SHS/list_500queries.txt`.
+the two is actually a cover of the given track. The list of tracks for this task 
+is found in the file `SHS/list_500queries.txt`.
+
+To run the task without any dimensionality reduction (i.e. each track is 
+represented by a 12x75 vector), type:
+
+	./binary_task.py path_to_MSD
+
+The result, as reported in (Thierry et. al 2012), should be 82.2%.
 
 Requirements
 ============
