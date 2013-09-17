@@ -39,11 +39,11 @@ This should result in 82.2%, as reported in (Thierry et. al 2012).
 To run the test using a dictionary to project the data into a (hopefully) more
 separable space:
 
-	./binary_task.py MSD -dictfile models/BasisProjection2_kE2045_actEdot_shkE0x200_anormETrue.pk
+	./binary_task.py path_to_MSD -dictfile models/BasisProjection2_kE2045_actEdot_shkE0x200_anormETrue.pk
 
 To add Linear Discriminative Analysis to the new projected space:
 
-	./binary_task.py MSD -dictfile models/BasisProjection2_kE2045_actEdot_shkE0x200_anormETrue.pk -lda models/lda-kE2045-shkE0x200.pk n
+	./binary_task.py path_to_MSD -dictfile models/BasisProjection2_kE2045_actEdot_shkE0x200_anormETrue.pk -lda models/lda-kE2045-shkE0x200.pk n
 
 where `n` is the index number of the model. In the given model (`models/lda-kE2045-shkE0x200.pk`), n == 0 represents 50 dimensions, n == 1 is 100 dimensions, and
 n == 2 is 200 dimensions.
