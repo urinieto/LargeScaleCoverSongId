@@ -8,8 +8,18 @@ Juan P. Bello. ISMIR, Curitiba, Brazil, 2013.
 This project includes three main tasks:
 
 - Binary Task: Analyze 500 tracks as described in (Thierry et. al 2012).
-- Cover Song ID in Second Hand Song Training Set (~12,000 songs).
-- Cover Song ID in Second Hand Song Test Set (~5,000 songs on the MSD).
+- Cover Song ID in Second Hand Song Training Set (~12,000 songs on themselves).
+- Cover Song ID in Second Hand Song Test Set (~5,000 songs on 1,000,000).
+
+Features
+========
+
+Binary Task
+-----------
+
+This task compares one given track against two others and decides which one of
+the two is actually a cover of the given track. The list of tracks is found
+in the file `SHS/list_500queries.txt`.
 
 Requirements
 ============
@@ -28,11 +38,6 @@ http://wiki.scipy.org/PyLab
 
 Scikit-Learn:
 http://scikit-learn.org/stable/
-
-Features
-========
-
-Binary Task
 
 
 References

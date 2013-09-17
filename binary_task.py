@@ -149,7 +149,8 @@ def read_query_file(queriesf):
 def main():
     # Args parser
     parser = argparse.ArgumentParser(description=
-                "Evaluates the 500 binary queries from the SHS data set")
+                "Evaluates the 500 binary queries from the SHS data set",
+                formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("msd_dir", action="store",
                         help="Million Song Dataset main directory")
     parser.add_argument("-f", action="store", dest="features",
