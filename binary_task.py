@@ -80,7 +80,7 @@ PATCH_LEN = WIN*12
 # Set up logger
 logger = utils.configure_logger()
 
-def extract_feats_new(filename, d, lda_file=None, lda_n=0, ver=True):
+def extract_feats(filename, d, lda_file=None, lda_n=0, ver=True):
     """Computes the features using the dictionary d. If it doesn't exist, 
      computes them using Thierry's method.
 
@@ -132,30 +132,6 @@ def extract_feats_new(filename, d, lda_file=None, lda_n=0, ver=True):
     feats = dan_tools.chromnorm(H.reshape(H.shape[0], 1)).squeeze()
 
     return feats
-
-
-def extract_feats_orig(filename):
-    """
-    Return a one dimensional vector for the data in the
-    given file
-    It uses 2D-FFT, etc
-    """
-    # get btchroma
-    feats = dan_tools.msd_beatchroma(filename)
-    if feats is None:
-        return None
-    # apply pwr
-    feats = dan_tools.chrompwr(feats, PWR)
-    # extract fft
-    feats = dan_tools.btchroma_to_fftmat(feats, WIN)
-    if feats is None:
-        return None
-    # take median
-    feats = np.median(feats, axis=1)
-    # normalize
-    feats = dan_tools.chromnorm(feats.reshape(feats.shape[0], 1))
-    # done
-    return feats.flatten()
 
 
 def read_query_file(queriesf):
@@ -248,12 +224,7 @@ def main():
     for triplet in queries:
         # get features
         filenames = map(lambda tid: utils.path_from_tid(maindir, tid), triplet)
-
-        # Compute features
-        if args.orig:
-            triplet_feats = map(lambda f: extract_feats_orig(f), filenames)
-        else:
-            triplet_feats = map(lambda f: extract_feats_new(f, args.dictfile, 
+        triplet_feats = map(lambda f: extract_feats_new(f, args.dictfile, 
                                     lda_file=lda, lda_n=lda_n), filenames)
         if None in triplet_feats:
             continue
@@ -274,7 +245,7 @@ def main():
             results.append(1)
         else:
             results.append(0)
-            
+
         # verbose
         if len(results) % 5 == 0:
             logger.info(' --- after %d queries, accuracy: %.1f %%' % \

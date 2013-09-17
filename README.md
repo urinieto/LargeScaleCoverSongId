@@ -26,7 +26,7 @@ represented by the full 12x75 vector), type:
 
 	./binary_task.py path_to_MSD
 
-If you add the flag `-orig`, the result, as reported in (Thierry et. al 2012), should be 82.0%.
+The result, as reported in (Thierry et. al 2012), should be 82.0%.
 
 This package already provides a previously learned Principal Component Analysis
 transformation (`models/pca_250Kexamples_900dim_nocovers.pkl`). To run the task 
@@ -34,8 +34,7 @@ with a PCA of 50 components:
 
 	./binary_task.py path_to_MSD -pca models/pca_250Kexamples_900dim_nocovers.pkl 50
 
-This should result in 82.2% if using the `-orig` flag, as reported in (Thierry 
-et. al 2012).
+This should result in 82.2%, as reported in (Thierry et. al 2012).
 
 To run the test using a dictionary to project the data into a (hopefully) more
 separable space:
