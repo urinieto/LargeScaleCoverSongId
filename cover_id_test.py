@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-TODO: Documentation
+
 
 ----
 Authors: 
@@ -51,6 +51,7 @@ import argparse
 from scipy.spatial import distance
 import time
 import glob
+
 # local stuff
 import pca
 import hdf5_getters as GETTERS

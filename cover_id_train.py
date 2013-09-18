@@ -190,6 +190,7 @@ def compute_feats(track_ids, maindir, d, lda_file=None, lda_n=0, codes=None,
     return final_feats
 
 def score(feats, clique_ids, lda_idx=0, stats_len=None, ver=True):
+    """Compute the scores of the entire train dataset."""
     if stats_len is None:
         stats = [np.inf]*len(feats)
     else:

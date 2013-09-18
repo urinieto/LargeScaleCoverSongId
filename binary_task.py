@@ -11,6 +11,8 @@ The list of queries to test must be located in:
 The training set of the Second Hand Song dataset must be located in:
 ./SHS/shs_dataset_train.txt
 
+Please, read the README.md file for more info on how to run this code.
+
 References:
 Bertin-Mahieux, T., & Ellis, D. P. W. (2012). Large-Scale Cover Song 
 Recognition Using The 2D Fourier Transform Magnitude. In Proc. of the 13th 
@@ -135,9 +137,7 @@ def extract_feats(filename, d, lda_file=None, lda_n=0, ver=True):
 
 
 def read_query_file(queriesf):
-    """
-    Read queries, return triplets (query/good/bad)
-    """
+    """Read queries, return triplets (query/good/bad)."""
     queries = []
     triplet = []
     f = open(queriesf, 'r')
