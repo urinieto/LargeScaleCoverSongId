@@ -153,33 +153,6 @@ def compute_codes(track_ids, maindir, d, N, clique_ids, lda):
         cPickle.dump(codes, f, protocol=1)
         f.close()
 
-def load_codes(codesdir, lda_idx):
-    code_files = glob.glob(os.path.join(codesdir, "*.pk"))
-    if lda_idx == 0:
-        n_comp = 50
-    elif lda_idx == 1:
-        n_comp = 100
-    elif lda_idx == 2:
-        n_comp = 200
-    feats = np.empty((0,n_comp))
-    #feats = np.empty((0,2045))
-    track_ids = []
-    clique_ids = []
-    for code_file in code_files:
-        codes = utils.load_pickle(code_file)
-        feats = np.append(feats, codes[0][lda_idx], axis=0)
-        #feats = np.append(feats, codes[0], axis=0)
-        track_ids += codes[1]
-        clique_ids += list(codes[2])
-
-    track_ids = np.asarray(track_ids)
-    clique_ids = np.asarray(clique_ids)
-
-    #utils.save_pickle((feats,track_ids,clique_ids), 
-    #                    "msd_codes_" + str(n_comp) + ".pk")
-
-    return feats, track_ids, clique_ids
-
 def score(feats, clique_ids, lda_idx=0):
     stats = [np.inf] * 5236
     #stats = [np.inf] * 12960
@@ -211,8 +184,12 @@ def score(feats, clique_ids, lda_idx=0):
 def main():
     # Args parser
     parser = argparse.ArgumentParser(description=
-                "Evaluates the average rank and mean AP for the test SHS")
-    parser.add_argument("-d", dest="dictfile", action="store", default="",
+                "Evaluates the average rank and mean AP for the test SHS " \
+                "over the entire MSD",
+                formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("msd_dir", action="store",
+                        help="Million Song Dataset main directory")
+    parser.add_argument("-dictfile", action="store", default="",
                         help="Pickle to the learned dictionary")
     parser.add_argument("-N", action="store", type=int, default=0,
                         help="Set of 100,000ths to be computed")
@@ -225,7 +202,7 @@ def main():
 
     args = parser.parse_args()
     start_time = time.time()
-    maindir = "MSD"
+    maindir = arg.msd_dir
     shsf = "SHS/shs_dataset_test.txt"
 
     # sanity cheks
@@ -241,8 +218,6 @@ def main():
     # read codes file
     codesdir = args.codesdir[0]
     if codesdir is not None:
-        #feats, track_ids, clique_ids = load_codes(codesdir, 
-        #                                        lda_idx=int(args.codesdir[1]))
         c = utils.load_pickle(codesdir)
         feats = c[0]
         logger.info("Codes files read")
