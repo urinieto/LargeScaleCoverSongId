@@ -26,7 +26,7 @@ represented by the full 12x75 vector), type:
 
 	./binary_task.py path_to_MSD
 
-The result, as reported in (Thierry et al. 2012), should be 82.0%.
+The result, as reported in (Thierry et al. 2012), should be *82.0%*.
 
 This package already provides a previously learned Principal Component Analysis
 transformation (`models/pca_250Kexamples_900dim_nocovers.pkl`). To run the task 
@@ -34,7 +34,7 @@ with a PCA of 50 components:
 
 	./binary_task.py path_to_MSD -pca models/pca_250Kexamples_900dim_nocovers.pkl 50
 
-This should result in 82.2%, as reported in (Thierry et al. 2012).
+This should result in *82.2%*, as reported in (Thierry et al. 2012).
 
 To run the test using a dictionary to project the data into a (hopefully) more
 separable space, we include a dictionary 
@@ -47,8 +47,9 @@ To add Linear Discriminative Analysis to the new projected space:
 
 	./binary_task.py path_to_MSD -dictfile models/BasisProjection2_kE2045_actEdot_shkE0x200_anormETrue.pk -lda models/lda-kE2045-shkE0x200.pk n
 
-where `n` is the index number of the model. In the given model (`models/lda-kE2045-shkE0x200.pk`), n == 0 represents 50 dimensions, n == 1 is 100 dimensions, and
-n == 2 is 200 dimensions.
+where `n` is the index number of the model. In the given model (`models/lda-kE2045-shkE0x200.pk`), n = 0 represents 50 dimensions, n = 1 is 100 dimensions, and
+n = 2 is 200 dimensions. As an example, with 200 dimensions (n = 2) the result
+should be *94.4%*.
 
 Cover Song ID in Training
 -------------------------
@@ -62,7 +63,7 @@ represented by the full 12x75 vector), type:
 	./cover_id_train.py path_to_MSD
 
 The result should be exactly the same as the one reported by (Thierry et al.
-2012): AR = 3096.7, MAP = 8.912%.
+2012): AR = 3096.7, MAP = 8.91%.
 
 To apply PCA of 200 on these full features:
 
