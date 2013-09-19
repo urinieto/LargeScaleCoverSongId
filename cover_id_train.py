@@ -135,6 +135,7 @@ def compute_feats(track_ids, maindir, d, lda_file=None, lda_n=0, codes=None,
         n_comp = K 
 
     final_feats = np.ones((codes.shape[0],n_comp)) * np.nan
+    orig_feats = []
     for cnt, tid in enumerate(track_ids):
         if compute_codes:
             path = utils.path_from_tid(maindir, tid)
@@ -144,8 +145,10 @@ def compute_feats(track_ids, maindir, d, lda_file=None, lda_n=0, codes=None,
             # 3.- Shingle (PATCH_LEN: 75 x 12)
             # 4.- 2D-FFT
             feats = utils.extract_feats(path)
+            orig_feats.append(feats)    # Store orig feats
             if feats == None:
                 continue
+            
             if d != "":
                 # 5.- L2-Norm
                 # 6.- Log-Scale
@@ -184,7 +187,7 @@ def compute_feats(track_ids, maindir, d, lda_file=None, lda_n=0, codes=None,
         utils.save_pickle(codes, "results/codes-" + os.path.basename(d) + ".pk")
 
     # Save features
-    utils.save_pickle(final_feats, "results/feats-" + os.path.basename(d) + ".pk")
+    utils.save_pickle(orig_feats, "results/feats-" + os.path.basename(d) + ".pk")
 
     logger.info("Features Computed")
     return final_feats

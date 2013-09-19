@@ -103,12 +103,16 @@ def compute_codes_it(track_ids, maindir, d, clique_ids, lda,
     Dimensionality reduction using LDA of 50, 100, and 200 components."""
     fx = load_transform(d)
     res = []
-    lda_components = [50,100,200]
+    K = int(d.split("_")[1].split("E")[1])
 
     # Init codes
     codes = []
-    for n_comp in lda_components:
-        codes.append(np.ones((end_idx-start_idx,n_comp)) * np.nan)
+    if lda is not None:
+        lda_components = [50,100,200]
+        for n_comp in lda_components:
+            codes.append(np.ones((end_idx-start_idx,n_comp)) * np.nan)
+    else:
+        codes.append(np.ones((end_idx-start_idx, K)) * np.nan)
 
     for i, tid in enumerate(track_ids[start_idx:end_idx]):
         path = utils.path_from_tid(maindir, tid)
@@ -116,16 +120,20 @@ def compute_codes_it(track_ids, maindir, d, clique_ids, lda,
         if feats == None:
             continue
         med = np.median(fx(feats), axis=0)
-        for lda_idx, n_comp in enumerate(lda_components):
-            tmp = lda[lda_idx].transform(med)
-            codes[lda_idx][i] = dan_tools.chromnorm(tmp.reshape(tmp.shape[0], 
-                                    1)).squeeze()
+        if lda is not None:
+            for lda_idx, n_comp in enumerate(lda_components):
+                tmp = lda[lda_idx].transform(med)
+                codes[lda_idx][i] = dan_tools.chromnorm(tmp.reshape(tmp.shape[0], 
+                                        1)).squeeze()
+        else:
+            codes[0][i] = dan_tools.chromnorm(med.reshape(med.shape[0], 
+                                              1)).squeeze()
         if i % 1000 == 0:
             logger.info("Computed %d of %d track(s)" % (i, end_idx-start_idx))
     res = (codes, track_ids[start_idx:end_idx], clique_ids[start_idx:end_idx])
     return res
 
-def compute_codes(track_ids, maindir, d, N, clique_ids, lda):
+def compute_codes(track_ids, maindir, d, N, clique_ids, outdir, lda):
     """Computes maximum 10,000 x 10 tracks. N is the index in the MSD:
         e.g. 
             if N = 1: tracks computed: from 100,000 to 199,999
@@ -141,14 +149,13 @@ def compute_codes(track_ids, maindir, d, N, clique_ids, lda):
         strN = str(N)
         if N < 10:
             strN = "0" + str(N)
-        if lda is None:
+        if d == "":
             codes = compute_codes_orig_it(track_ids, maindir, clique_ids,
                 start_idx, end_idx)
-            out_file = "msd_codes_orig/" + strN + str(it) + "-msd-codes.pk"
         else:
             codes = compute_codes_it(track_ids, maindir, d, clique_ids, lda,
                 start_idx, end_idx)
-            out_file = "msd_codes_bona/" + strN + str(it) + "-msd-codes.pk"
+        out_file = os.path.join(outdir, strN) + str(it) + "-msd-codes.pk"
         f = open(out_file, "w")
         cPickle.dump(codes, f, protocol=1)
         f.close()
@@ -180,6 +187,29 @@ def score(feats, clique_ids, lda_idx=0):
 
     return stats
 
+def load_codes(codesdir, lda_idx):
+    code_files = glob.glob(os.path.join(codesdir, "*.pk"))
+    if lda_idx == 0:
+        n_comp = 50
+    elif lda_idx == 1:
+        n_comp = 100
+    elif lda_idx == 2:
+        n_comp = 200
+    feats = np.empty((0,n_comp))
+    #feats = np.empty((0,2045))
+    track_ids = []
+    clique_ids = []
+    for code_file in code_files:
+        codes = utils.load_pickle(code_file)
+        feats = np.append(feats, codes[0][lda_idx], axis=0)
+        #feats = np.append(feats, codes[0], axis=0)
+        track_ids += codes[1]
+        clique_ids += list(codes[2])
+
+    track_ids = np.asarray(track_ids)
+    clique_ids = np.asarray(clique_ids)
+
+    return feats, track_ids, clique_ids
 
 def main():
     # Args parser
@@ -191,6 +221,8 @@ def main():
                         help="Million Song Dataset main directory")
     parser.add_argument("-dictfile", action="store", default="",
                         help="Pickle to the learned dictionary")
+    parser.add_argument("-outdir", action="store", default="msd_feats",
+                        help="Output directory for the features")
     parser.add_argument("-N", action="store", type=int, default=0,
                         help="Set of 100,000ths to be computed")
     parser.add_argument("-lda", action="store", default=None, 
@@ -202,14 +234,14 @@ def main():
 
     args = parser.parse_args()
     start_time = time.time()
-    maindir = arg.msd_dir
+    maindir = args.msd_dir
     shsf = "SHS/shs_dataset_test.txt"
 
     # sanity cheks
     utils.assert_file(maindir)
     utils.assert_file(shsf)
+    utils.create_dir(args.outdir)
 
-    # TODO: Not needed? Do as in train file.
     # read cliques and all tracks
     cliques, all_tracks = utils.read_shs_file(shsf)
     track_ids = utils.load_pickle("SHS/track_ids_test.pk")
@@ -218,8 +250,8 @@ def main():
     # read codes file
     codesdir = args.codesdir[0]
     if codesdir is not None:
-        c = utils.load_pickle(codesdir)
-        feats = c[0]
+        feats, track_ids, clique_ids = load_codes(codesdir, 
+                                            lda_idx=int(args.codesdir[1]))
         logger.info("Codes files read")
     else:
         # read LDA file
@@ -230,7 +262,7 @@ def main():
 
         utils.assert_file(args.dictfile)
         compute_codes(track_ids, maindir, args.dictfile, args.N, clique_ids, 
-            lda_file)
+            args.outdir, lda_file)
         logger.info("Codes computation done!")
         logger.info("Took %.2f seconds" % (time.time() - start_time))
         sys.exit()
@@ -239,6 +271,7 @@ def main():
     feats, clique_ids, track_ids = utils.clean_feats(feats, clique_ids, track_ids)
     stats = score(feats, clique_ids)
 
+    # TODO: change file name
     f = open("stats-test-kE2045-LDA50.pk" + os.path.basename(args.dictfile), "w")
     cPickle.dump(stats, f, protocol=1)
     f.close()

@@ -43,6 +43,8 @@ used like this:
 
 	./binary_task.py path_to_MSD -dictfile models/BasisProjection2_kE2045_actEdot_shkE0x200_anormETrue.pk
 
+The result should be *81.2%*.
+
 To add Linear Discriminative Analysis to the new projected space:
 
 	./binary_task.py path_to_MSD -dictfile models/BasisProjection2_kE2045_actEdot_shkE0x200_anormETrue.pk -lda models/lda-kE2045-shkE0x200.pk n
@@ -84,7 +86,36 @@ This should result in AR = 3026, MAP = 5.51%, as reported in (Humphrey et al.
 Cover Song ID in Test
 ---------------------
 
-TODO
+This task compares the 5236 tracks from the test SHS dataset against all the
+1,000,000 tracks from the MSD. Since computing the features for the entire MSD
+takes a long time, the code is written to be run in 10 different threads, so that 
+the work can be split in 10 different processors.
+
+To run the n-th process, type:
+
+	./cover_id_test.py path_to_MSD -dictfile models/BasisProjection2_kE2045_actEdot_shkE0x200_anormETrue.pk -lda models/lda-kE2045-shkE0x200.pk -N n -outdir msd_feats
+
+Note that you will have to run 10 different processes in order to get all the
+features.
+
+Once all the features are computed inside a dir (e.g. `msd_feats`), we can
+compute the score by:
+
+	./cover_id_test.py path_to_MSD -codes msd_feats/ n
+
+where `n` is the index number of the LDA model. In the given model (`models/lda-kE2045-shkE0x200.pk`), 
+n = 0 represents 50 dimensions, n = 1 is 100 dimensions, and
+n = 2 is 200 dimensions. For this script to optimally run, we will need as 
+much RAM memory as possible. The script works fine with 20GB of RAM. We also
+tried to run it with 6GB, but it took around 2 hours to load all the features,
+instead of a couple of minutes.
+
+Note that in this task we can't compute the entire full
+features code (12x75, or, if projected to a higher dimensional space, 2045), 
+since it would take too long to run.
+
+
+
 
 
 Requirements
@@ -104,6 +135,8 @@ http://wiki.scipy.org/PyLab
 
 Scikit-Learn:
 http://scikit-learn.org/stable/
+
+And as much RAM memory as possible. At least 16GB is recommended.
 
 
 References

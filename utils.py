@@ -207,10 +207,9 @@ def fit_LDA_from_codes_file(codes_file, msd=False):
         clique_idx_test = load_pickle("SHS/clique_ids_test.pk")
         track_idx_test = load_pickle("SHS/track_ids_test.pk")
         track_idx_train = load_pickle("SHS/track_ids_train.pk")
-        print "PUTA", clique_idx_test
 
         # Find subset
-        ix = np.in1d( track_idx_test, track_idx_train)
+        ix = np.in1d( track_idx_test, track_idx_train )
         idxs = np.where(ix)
 
         # Get subset
@@ -373,8 +372,63 @@ def get_train_validation_sets(codes, cliques, tracks, N=9000):
     save_pickle(cliques_train, "cliques_t.pk")
     save_pickle(tracks_train, "tracks_t.pk")
 
+def fit_LDA_filter(maindir, d, N=9000, n=9):
+    """Fits an LDA with a filtered version of the dataset, such that each
+        clique contains at least n tracks."""
+
+    import binary_task as B
+
+    clique_test = load_pickle("SHS/clique_ids_test.pk")
+    clique_train = load_pickle("SHS/clique_ids_train.pk")
+    track_test = load_pickle("SHS/track_ids_test.pk")
+    track_train = load_pickle("SHS/track_ids_train.pk")
+
+    # Result to 
+    codes = []
+    labels = []
+
+    clique_idx = 0
+    label_id = 1000001
+    while len(codes) < N:
+        # Pick the tracks from the train set that belong to a
+        # clique that has at least n tracks
+        if clique_idx < len(clique_train):
+            while clique_idx < len(clique_train) and \
+                    len(np.where(clique_train == clique_train[clique_idx])[0]) < n :
+                clique_idx += 1
+
+            if clique_idx < len(clique_train) and clique_train[clique_idx] != -2:
+                for clique_id in \
+                        np.where(clique_train == clique_train[clique_idx])[0]:
+                    track_id = track_train[clique_id]
+                    filename = path_from_tid(maindir, track_id)
+                    codes.append( B.extract_feats(filename, d) )
+                    labels.append( clique_idx )
+                    clique_train[clique_id] = -2
+
+            clique_idx += 1
+
+        # Pick random tracks from the MSD and assign new labels
+        else:
+            clique_id = np.random.random_integers(0,999999)
+            while clique_test[clique_id] != -1:
+                clique_id = np.random.random_integers(0,999999)
+            print "Random clique", clique_id, len(codes)
+            track_id = track_test[clique_id]
+            filename = path_from_tid(maindir, track_id)
+            codes.append( B.extract_feats(filename, d) )
+            labels.append( label_id )
+            label_id += 1
+            clique_test[clique_id] = -2
+
+        print "Computed %d out of %d codes" % (len(codes), N)
+
+    save_pickle(codes, "codes_filter_LDA.pk")
+    save_pickle(labels, "cliques_filter_LDA.pk")
+
+
 def lda_chart():
-    import uri_SHS_train as U
+    import cover_id_train as U
     
     codes = load_pickle("lda_tran_codes.pk")
     cliques = load_pickle("lda_train_clique_id.pk")
@@ -436,5 +490,32 @@ def lda_chart():
             f.write(str_train + str_val)
             f.close()
 
+def compute_training_features(N=50000):
+    """Computes N features for training purposes."""
 
+    logger = configure_logger()
+    maindir = "MSD"
+
+    clique_test = load_pickle("SHS/clique_ids_test.pk")
+    track_test = load_pickle("SHS/track_ids_test.pk")
+
+    feats = []
+
+    while len(feats) < N:
+        clique_id = np.random.random_integers(0,999999)
+        while clique_test[clique_id] == -2:
+            clique_id = np.random.random_integers(0,999999)
+        track_id = track_test[clique_id]
+        filename = path_from_tid(maindir, track_id)
+        feat = extract_feats(filename)
+        if feat is not None:
+            feats.append((feat, clique_id, track_id))
+            # Marked as used
+            clique_test[clique_id] = -2
+
+        if len(feats) % 100 == 0:
+            logger.info("----Computing features %.1f%%" % \
+                            (len(feats)/float(N) * 100))
+
+    save_pickle(feats, "feats_training_Ne%d.pk" % N)
 
