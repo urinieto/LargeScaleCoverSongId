@@ -396,33 +396,36 @@ def fit_PCA(maindir, d, outpca="PCA-codes.pk", N=50000):
     import binary_task as B
 
     logger = configure_logger()
-    maindir = "MSD"
 
     track_test = load_pickle("SHS/track_ids_test.pk")
 
     fx = load_transform(d)
-    codes = []
+    codes = np.ones((N, 2045)) * np.nan
+    k = 0
 
-    while len(codes) < N:
-        track_id = np.random.random_integers(0,999999)
-        while track_test[track_id] == -2:
-            track_id = np.random.random_integers(0,999999)
+    while k < N:
+        track_idx = np.random.random_integers(0,999999)
+        while track_test[track_idx] == -2:
+            track_idx = np.random.random_integers(0,999999)
+        track_id = track_test[track_idx]
         filename = path_from_tid(maindir, track_id)
         code = B.extract_feats(filename, d, fx=fx)
         if code is not None:
-            codes.append(code)
+            codes[k] = code
             # Marked as used
-            track_test[track_id] = -2
+            track_test[track_idx] = -2
+            k += 1
 
-        if len(codes) % 100 == 0:
+        if k % 100 == 0:
             logger.info("----Computing features %.1f%%" % \
-                            (len(feats)/float(N) * 100 + k*K/float(N) * 100))
+                            (k/float(N) * 100))
 
 
     # Fit PCA
     res = []
     codes = np.asarray(codes)
     components = [50,100,200]
+    print codes
     for c in components:
         pca = PCA(n_components=c)
         pca.fit(codes)
@@ -430,6 +433,8 @@ def fit_PCA(maindir, d, outpca="PCA-codes.pk", N=50000):
 
     # Save Result
     save_pickle(res, outpca)
+
+    return codes
 
 
 def fit_LDA_filter(maindir, d, N=9000, n=9, pca=None):
