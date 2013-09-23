@@ -145,7 +145,7 @@ def compute_feats(track_ids, maindir, d, lda_file=None, lda_n=0, codes=None,
             # 3.- Shingle (PATCH_LEN: 75 x 12)
             # 4.- 2D-FFT
             feats = utils.extract_feats(path)
-            orig_feats.append(feats)    # Store orig feats
+            #orig_feats.append(feats)    # Store orig feats
             if feats == None:
                 continue
             
@@ -187,7 +187,7 @@ def compute_feats(track_ids, maindir, d, lda_file=None, lda_n=0, codes=None,
         utils.save_pickle(codes, "results/codes-" + os.path.basename(d) + ".pk")
 
     # Save features
-    utils.save_pickle(orig_feats, "results/feats-" + os.path.basename(d) + ".pk")
+    #utils.save_pickle(orig_feats, "results/feats-" + os.path.basename(d) + ".pk")
 
     logger.info("Features Computed")
     return final_feats

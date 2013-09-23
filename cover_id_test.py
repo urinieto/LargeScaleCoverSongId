@@ -139,8 +139,8 @@ def compute_codes(track_ids, maindir, d, N, clique_ids, outdir, lda):
             if N = 1: tracks computed: from 100,000 to 199,999
             if N = 5: tracks computed: from 500,000 to 599,999
     """
-    MAX     = 1e5 / 2
-    ITER    = 1e4 / 2
+    MAX     = 1e5 / 1
+    ITER    = 1e4 / 1
     for it in xrange(10):
         logger.info("Computing %d of 10 iteration" % it)
         start_idx = int(N*MAX + it*ITER)
@@ -180,10 +180,10 @@ def score(feats, clique_ids, lda_idx=0):
         q += 1
         if q % 400 == 0:
             logger.info('After %d queries: average rank per track: %.2f'
-                ', clique: %.2f, MAP: %.5f' \
+                ', clique: %.2f, MAP: %.2f' \
                 % (q, anst.average_rank_per_track(stats),
                     anst.average_rank_per_clique(stats),
-                    anst.mean_average_precision(stats)))
+                    anst.mean_average_precision(stats) * 100))
 
     return stats
 
@@ -221,7 +221,7 @@ def main():
                         help="Million Song Dataset main directory")
     parser.add_argument("-dictfile", action="store", default="",
                         help="Pickle to the learned dictionary")
-    parser.add_argument("-outdir", action="store", default="msd_feats",
+    parser.add_argument("-outdir", action="store", default="msd_codes",
                         help="Output directory for the features")
     parser.add_argument("-N", action="store", type=int, default=0,
                         help="Set of 100,000ths to be computed")
@@ -253,6 +253,7 @@ def main():
         feats, track_ids, clique_ids = load_codes(codesdir, 
                                             lda_idx=int(args.codesdir[1]))
         logger.info("Codes files read")
+        print feats.shape
     else:
         # read LDA file
         lda_file = args.lda

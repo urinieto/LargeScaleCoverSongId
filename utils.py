@@ -199,7 +199,7 @@ def extract_feats(filename):
     # return the non-normalized features (L, 900)
     return feats.T
 
-def fit_LDA_from_codes_file(codes_file, msd=False):
+def fit_LDA_from_codes_file(codes_file, clique_idx=None, msd=False):
     """Fits and LDA from a codes file and saves it into a new pickle file."""
 
     if msd:
@@ -231,15 +231,31 @@ def fit_LDA_from_codes_file(codes_file, msd=False):
             N += 1
         codes = np.asarray(codes)
     else:
-        clique_idx = load_pickle("SHS/clique_ids_train.pk")
-        codes = load_pickle(codes_file)
-
-    print clique_idx
+        if clique_idx is None:
+            clique_idx = load_pickle("SHS/clique_ids_train.pk")
+        else:
+            clique_idx = np.asarray(load_pickle(clique_idx))
+        codes = np.asarray(load_pickle(codes_file))
 
     # Remove nans
-    nan_idx = np.unique(np.where(np.isnan(codes))[0])
-    codes = np.delete(codes, nan_idx, axis=0)
-    clique_idx = np.delete(clique_idx, nan_idx, axis=0)
+    #nan_idx = np.unique(np.where(np.isnan(codes))[0])
+    #codes = np.delete(codes, nan_idx, axis=0)
+    #clique_idx = np.delete(clique_idx, nan_idx, axis=0)
+
+    #print clique_idx.shape, codes.shape
+
+    # Remove Nones
+    none_idx = np.where(np.equal(codes, None))[0]
+    codes = np.delete(codes, none_idx, axis=0)
+    clique_idx = np.delete(clique_idx, none_idx, axis=0)
+    # Hack to make it the right shape
+    C = np.zeros((codes.shape[0], codes[0].shape[0]))
+    k = 0
+    for code in codes:
+        C[k] = code
+        k+=1
+    codes = C
+    print codes.shape
 
     res = []
     components = [50,100,200]
@@ -501,6 +517,7 @@ def compute_training_features(N=50000):
 
     feats = []
 
+    k = 0
     while len(feats) < N:
         clique_id = np.random.random_integers(0,999999)
         while clique_test[clique_id] == -2:
@@ -513,9 +530,14 @@ def compute_training_features(N=50000):
             # Marked as used
             clique_test[clique_id] = -2
 
+        if len(feats) % 1000 == 0:
+            save_pickle(feats, "feats_training_NE%d_kE%d.pk" % (N, k))
+            feats = []
+            k += 1
+
         if len(feats) % 100 == 0:
             logger.info("----Computing features %.1f%%" % \
-                            (len(feats)/float(N) * 100))
+                            (len(feats)/float(N) * 100 + k*2))
 
-    save_pickle(feats, "feats_training_Ne%d.pk" % N)
+    save_pickle(feats, "feats_training_NE%d_kE%d.pk" % (N, k))
 
