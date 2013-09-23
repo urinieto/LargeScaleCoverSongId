@@ -82,7 +82,7 @@ PATCH_LEN = WIN*12
 # Set up logger
 logger = utils.configure_logger()
 
-def extract_feats(filename, d, lda_file=None, lda_n=0, ver=True):
+def extract_feats(filename, d, lda_file=None, lda_n=0, ver=True, fx=None):
     """Computes the features using the dictionary d. If it doesn't exist, 
      computes them using Thierry's method.
 
@@ -102,7 +102,7 @@ def extract_feats(filename, d, lda_file=None, lda_n=0, ver=True):
 
     Original method by Thierry doesn't include steps 5,6,7,8,11.
      """
-    if d != "":
+    if d != "" and fx is not None:
         fx = load_transform(d)
     
     # 1.- Beat Synchronous Chroma

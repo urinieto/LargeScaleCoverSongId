@@ -48,9 +48,11 @@ import os
 import pylab as plt
 import dan_tools
 from sklearn.lda import LDA
+from sklearn.decomposition import PCA
 
 # local files
 import analyze_stats as anst
+from transforms import load_transform
 
 ### Logging methods
 def configure_logger():
@@ -388,7 +390,49 @@ def get_train_validation_sets(codes, cliques, tracks, N=9000):
     save_pickle(cliques_train, "cliques_t.pk")
     save_pickle(tracks_train, "tracks_t.pk")
 
-def fit_LDA_filter(maindir, d, N=9000, n=9):
+
+def fit_PCA(maindir, d, outpca="PCA-codes.pk", N=50000):
+    """Fits a PCA transformation with N codes."""
+    import binary_task as B
+
+    logger = configure_logger()
+    maindir = "MSD"
+
+    track_test = load_pickle("SHS/track_ids_test.pk")
+
+    fx = load_transform(d)
+    codes = []
+
+    while len(codes) < N:
+        track_id = np.random.random_integers(0,999999)
+        while track_test[track_id] == -2:
+            track_id = np.random.random_integers(0,999999)
+        filename = path_from_tid(maindir, track_id)
+        code = B.extract_feats(filename, d, fx=fx)
+        if code is not None:
+            codes.append(code)
+            # Marked as used
+            track_test[track_id] = -2
+
+        if len(codes) % 100 == 0:
+            logger.info("----Computing features %.1f%%" % \
+                            (len(feats)/float(N) * 100 + k*K/float(N) * 100))
+
+
+    # Fit PCA
+    res = []
+    codes = np.asarray(codes)
+    components = [50,100,200]
+    for c in components:
+        pca = PCA(n_components=c)
+        pca.fit(codes)
+        res.append(pca)
+
+    # Save Result
+    save_pickle(res, outpca)
+
+
+def fit_LDA_filter(maindir, d, N=9000, n=9, pca=None):
     """Fits an LDA with a filtered version of the dataset, such that each
         clique contains at least n tracks."""
 
@@ -518,7 +562,8 @@ def compute_training_features(N=50000):
     feats = []
 
     k = 0
-    while len(feats) < N:
+    K = 1000 # Save file every K iterations
+    while len(feats) + k*K < N:
         clique_id = np.random.random_integers(0,999999)
         while clique_test[clique_id] == -2:
             clique_id = np.random.random_integers(0,999999)
@@ -530,14 +575,14 @@ def compute_training_features(N=50000):
             # Marked as used
             clique_test[clique_id] = -2
 
-        if len(feats) % 1000 == 0:
+        if len(feats) % K == 0:
             save_pickle(feats, "feats_training_NE%d_kE%d.pk" % (N, k))
             feats = []
             k += 1
 
         if len(feats) % 100 == 0:
             logger.info("----Computing features %.1f%%" % \
-                            (len(feats)/float(N) * 100 + k*2))
+                            (len(feats)/float(N) * 100 + k*K/float(N) * 100))
 
     save_pickle(feats, "feats_training_NE%d_kE%d.pk" % (N, k))
 
