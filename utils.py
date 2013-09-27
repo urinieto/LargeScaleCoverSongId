@@ -201,90 +201,6 @@ def extract_feats(filename):
     # return the non-normalized features (L, 900)
     return feats.T
 
-def fit_LDA_from_codes_file(codes_file, clique_idx=None, msd=False):
-    """Fits and LDA from a codes file and saves it into a new pickle file."""
-
-    if msd:
-        # Get only the training set
-        clique_idx_test = load_pickle("SHS/clique_ids_test.pk")
-        track_idx_test = load_pickle("SHS/track_ids_test.pk")
-        track_idx_train = load_pickle("SHS/track_ids_train.pk")
-
-        # Find subset
-        ix = np.in1d( track_idx_test, track_idx_train )
-        idxs = np.where(ix)
-
-        # Get subset
-        clique_idx = clique_idx_test[idxs]
-        code_files = glob.glob(os.path.join(codes_file, "*.pk"))
-        N = 0
-        codes = []
-        start_idx = 0
-        for code_f in code_files[:1]:
-            print "Reading file %s" % code_f
-            c = load_pickle(code_f)
-            for idx in idxs[0]:
-                if idx >= (N+1)*10000:
-                    break
-                if idx < N*10000:
-                    continue
-                codes.append(c[0][idx%10000])
-                assert c[1][idx%10000] == track_idx_test[idx]
-            N += 1
-        codes = np.asarray(codes)
-    else:
-        if clique_idx is None:
-            clique_idx = load_pickle("SHS/clique_ids_train.pk")
-        else:
-            clique_idx = np.asarray(load_pickle(clique_idx))
-        codes = np.asarray(load_pickle(codes_file))
-
-    #print clique_idx.shape, codes.shape
-
-    # Remove Nones
-    none_idx = np.where(np.equal(codes, None))[0]
-    codes = np.delete(codes, none_idx, axis=0)
-    clique_idx = np.delete(clique_idx, none_idx, axis=0)
-    # Hack to make it the right shape
-    C = np.zeros((codes.shape[0], codes[0].shape[0]))
-    k = 0
-    for code in codes:
-        C[k] = code
-        k+=1
-    codes = C
-
-    # Remove nans
-    nan_idx = np.unique(np.where(np.isnan(codes))[0])
-    codes = np.delete(codes, nan_idx, axis=0)
-    clique_idx = np.delete(clique_idx, nan_idx, axis=0)
-    print codes.shape
-
-    res = []
-    components = [50,100,200]
-    for c in components:
-        lda = LDA(n_components=c)
-        lda.fit(codes, clique_idx)
-        res.append(lda)
-    save_pickle(res, codes_file.strip(".pk") + "_LDAs.pk")
-
-def compute_LDA_from_full(full_dir, lda_file, out_dir):
-    code_files = glob.glob(os.path.join(full_dir, "*.pk"))
-    lda = load_pickle(lda_file)
-    for code_f in code_files:
-        codes = load_pickle(code_f)
-        lda0 = []
-        lda1 = []
-        lda2 = []
-        for code in codes[0]:
-            tmp = lda[0].transform(code)
-            lda0.append(dan_tools.chromnorm(tmp.reshape(tmp.shape[0], 
-                                    1)).squeeze())
-
-            out.append(lda[0].transform(c[0]))
-            out.append(lda[0].transform(c[1]))
-            out.append(lda[0].transform(c[2]))
-
-
 def extract_track_ids(maindir):
     """Extracts all the track ids from an MSD structure."""
     ext = ".h5"
@@ -389,33 +305,30 @@ def get_train_validation_sets(codes, cliques, tracks, N=9000):
     save_pickle(tracks_train, "tracks_t.pk")
 
 
-def fit_PCA(maindir, d, origcodesdir=None, outpca="PCA-codes.pk", N=50000):
+def fit_PCA(maindir, d, origcodes_f="msd_codes_k2045", outpca="PCA-codes.pk", 
+        N=50000, norm=False, pca_components=[50, 100, 200, 500, 1000]):
     """Fits a PCA transformation with N codes."""
     import binary_task as B
     import cover_id_test as CO
 
     logger = configure_logger()
 
-    track_ids = load_pickle("SHS/track_ids_test.pk")
-
-    fx = load_transform(d)
+    td = load_transform(d)
     codes = np.ones((N, 2045)) * np.nan
     k = 0
 
-    if origcodesdir is not None:
-        origcodes, track_ids, clique_ids = CO.load_codes(origcodesdir, -1, 20)
+    # Load codes
+    origcodes, track_ids, clique_ids = CO.load_codes(origcodes_f, -1, 30)
 
     while k < N:
         track_idx = np.random.random_integers(0,len(track_ids)-1)
         while  track_ids[track_idx] == -2:
             track_idx = np.random.random_integers(0,len(track_ids)-1)
         track_id = track_ids[track_idx]
-        if origcodesdir is not None:
-            code = origcodes[track_idx]
-        else:
-            filename = path_from_tid(maindir, track_id)
-            code = B.extract_feats(filename, d, fx=fx)
+        code = origcodes[track_idx]
         if code is not None:
+            if norm:
+                code = dan_tools.chromnorm(code.reshape(code.shape[0], 1)).squeeze()
             codes[k] = code
             # Marked as used
             track_ids[track_idx] = -2
@@ -432,9 +345,7 @@ def fit_PCA(maindir, d, origcodesdir=None, outpca="PCA-codes.pk", N=50000):
     # Fit PCA
     res = []
     codes = np.asarray(codes)
-    components = [50,100,200]
-    print codes
-    for c in components:
+    for c in pca_components:
         pca = PCA(n_components=c)
         pca.fit(codes)
         res.append(pca)
@@ -442,15 +353,44 @@ def fit_PCA(maindir, d, origcodesdir=None, outpca="PCA-codes.pk", N=50000):
     # Save Result
     save_pickle(res, outpca)
 
-    return codes
+def fit_LDA_from_codes_file(codes_file, clique_idx, lda_components=[50,100,200],
+        outlda="LDAs.pk"):
+    """Fits and LDA from a codes file and saves it into a new pickle file."""
+
+    clique_idx = np.asarray(load_pickle(clique_idx))
+    codes = np.asarray(load_pickle(codes_file))
+
+    # Remove Nones
+    none_idx = np.where(np.equal(codes, None))[0]
+    codes = np.delete(codes, none_idx, axis=0)
+    clique_idx = np.delete(clique_idx, none_idx, axis=0)
+    # Hack to make it the right shape
+    C = np.zeros((codes.shape[0], codes[0].shape[0]))
+    k = 0
+    for code in codes:
+        C[k] = code
+        k+=1
+    codes = C
+
+    # Remove nans
+    nan_idx = np.unique(np.where(np.isnan(codes))[0])
+    codes = np.delete(codes, nan_idx, axis=0)
+    clique_idx = np.delete(clique_idx, nan_idx, axis=0)
+    print codes.shape
+
+    res = []
+    for c in lda_components:
+        lda = LDA(n_components=c)
+        lda.fit(codes, clique_idx)
+        res.append(lda)
+    save_pickle(res, outlda)
 
 
-def fit_LDA_filter(maindir, d, N=9000, n=9, pca=None, pca_n=0, codes_f=None,
-        codestrain_f=None):
+def fit_LDA_filter(maindir, d, codes_f, N=9000, n=9, pca=None, pca_n=0, 
+        norm=False, outlda="LDAs.pk", lda_components=[50,100,200]):
     """Fits an LDA with a filtered version of the dataset, such that each
         clique contains at least n tracks."""
 
-    import binary_task as B
     import cover_id_test as CO
 
     clique_test = load_pickle("SHS/clique_ids_test.pk")
@@ -466,15 +406,17 @@ def fit_LDA_filter(maindir, d, N=9000, n=9, pca=None, pca_n=0, codes_f=None,
         P = load_pickle(pca)
         P = P[pca_n]
 
-    if codes_f is not None:
-        C = CO.load_codes(codes_f, -1, 30)
-        C = C[0]
+    C = CO.load_codes(codes_f, -1, 30)
+    C = C[0]
 
-    if codestrain_f is not None:
-        codestrain = load_pickle(codestrain_f)
+    # Load the codes from the training set
+    codestrain = load_pickle("codes-shs-train-k2045.pk")
 
     clique_idx = 0
     label_id = 1000001
+
+    td = load_transform(d)
+
     while len(codes) < N:
         # Pick the tracks from the train set that belong to a
         # clique that has at least n tracks
@@ -486,15 +428,10 @@ def fit_LDA_filter(maindir, d, N=9000, n=9, pca=None, pca_n=0, codes_f=None,
             if clique_idx < len(clique_train) and clique_train[clique_idx] != -2:
                 for clique_id in \
                         np.where(clique_train == clique_train[clique_idx])[0]:
-
-                    if codestrain_f is None:
-                        track_id = track_train[clique_id]
-                        filename = path_from_tid(maindir, track_id)
-                        code = B.extract_feats(filename, d)
-                    else:
-                        code = codestrain[clique_id]
+                    code = codestrain[clique_id]
+                    if norm:
                         code = dan_tools.chromnorm(code.reshape(code.shape[0], 
-                                    1)).squeeze()
+                                        1)).squeeze()
                     clique_train[clique_id] = -2
                     if code is None:
                         continue
@@ -507,18 +444,13 @@ def fit_LDA_filter(maindir, d, N=9000, n=9, pca=None, pca_n=0, codes_f=None,
 
         # Pick random tracks from the MSD and assign new labels
         else:
-            if codes_f is not None:
+            clique_id = np.random.random_integers(0, len(C)-1)
+            while np.any(np.equal(C[clique_id], None)) or clique_test[clique_id] == -2:
                 clique_id = np.random.random_integers(0, len(C)-1)
-                while np.any(np.equal(C[clique_id], None)) or clique_test[clique_id] == -2:
-                    clique_id = np.random.random_integers(0, len(C)-1)
-                code = C[clique_id]
-            else:
-                clique_id = np.random.random_integers(0,999999)
-                while clique_test[clique_id] != -1:
-                    clique_id = np.random.random_integers(0,999999)
-                track_id = track_test[clique_id]
-                filename = path_from_tid(maindir, track_id)
-                code = B.extract_feats(filename, d)
+            code = C[clique_id]
+            if norm:
+                code = dan_tools.chromnorm(code.reshape(code.shape[0], 
+                                        1)).squeeze()
             if pca is not None:
                 code = P.transform(code)
             codes.append( code )
@@ -528,8 +460,13 @@ def fit_LDA_filter(maindir, d, N=9000, n=9, pca=None, pca_n=0, codes_f=None,
 
         print "Computed %d out of %d codes" % (len(codes), N)
 
-    save_pickle(codes, "codes_filter_LDA_PCA.pk")
-    save_pickle(labels, "cliques_filter_LDA_PCA.pk")
+    codes_pk = "codes_filter_LDA_PCA.pk"
+    cliques_pk = "cliques_filter_LDA_PCA.pk"
+    save_pickle(codes, codes_pk)
+    save_pickle(labels, cliques_pk)
+
+    # fit LDA and save model
+    fit_LDA_from_codes_file(codes_pk, cliques_pk, lda_components, outlda)
 
 
 def lda_chart():
@@ -630,4 +567,70 @@ def compute_training_features(N=50000):
                             (len(feats)/float(N) * 100 + k*K/float(N) * 100))
 
     save_pickle(feats, "feats_training_NE%d_kE%d.pk" % (N, k))
+
+def compute_models():
+    """Computes the different models for the MSD."""
+
+    logger = configure_logger()
+    maindir = "MSD"
+
+    # Dictionary to use
+    d = "models/BasisProjection2_kE2045_actEdot_shkE0x200_anormETrue.pk"
+    K = int(d.split("_")[1].split("E")[1])
+
+    # PCA settings
+    M = 150000
+    pca_dims = [50,100,200,500,1000] # Number of dimensions (-1: no pca)
+    norms = [True, False]
+
+    # Compute the PCA models
+    pca_files = []
+    for norm in norms:
+        out_pca_file = "models/PCAs_mE%d_normE%r_kE%d.pk" % \
+            (M, norm, K)
+        fit_PCA(maindir, d, origcodes_f="msd_codes_k2045", outpca=out_pca_file, 
+                N=M, norm=norm, pca_components=pca_dims)
+        pca_files.append(pca_files)
+
+    # Append None to not apply PCA in one of the LDA models
+    pca_files.append(None)
+
+    # LDA settings
+    Ns = [3000, 10000, 100000] # Number of tracks from training set + noise
+    ns = [-1, 5, 10, 15] # Filtering: number of tracks per clique (-1: no filter)
+    lda_dims = [50, 100, 200]
+
+    # Compute the LDA models
+    for pca_file in pca_files:
+        for N in Ns:
+            for n in ns:
+                for norm in norms:
+                    if pca_file is None:
+                        out_lda_file = "models/LDAs_NE%d_nE%d_mE%d_normE%r_kE%d.pk" % \
+                            (N, n, M, norm, K)
+                        fit_LDA_filter(maindir, d, "msd_codes_k2045", N=N, n=n, 
+                            norm=norm, outlda=out_lda_file, lda_components=lda_dims)
+                    else:
+                        for i in xrange(len(pca_dims)):
+                            pca_dim = pca_dims[i]
+                            out_lda_file = "models/LDAs_pcaE%d_NE%d_nE%d_mE%d_normE%r_kE%d.pk" % \
+                                (N, pca_dim, n, M, norm, K)
+                            fit_LDA_filter(maindir, d, "msd_codes_k2045", N=N, 
+                                n=n, norm=norm, pca=pca_file, pca_n=i, 
+                                outlda=out_lda_file, lda_components=lda_dims)
+
+                    
+
+
+
+
+
+
+
+
+
+
+
+
+
 

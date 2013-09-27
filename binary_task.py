@@ -82,9 +82,9 @@ PATCH_LEN = WIN*12
 # Set up logger
 logger = utils.configure_logger()
 
-def extract_feats(filename, d, lda_file=None, lda_n=0, ver=True, fx=None):
-    """Computes the features using the dictionary d. If it doesn't exist, 
-     computes them using Thierry's method.
+def extract_feats(filename, td=None, lda_file=None, lda_n=0, ver=True):
+    """Computes the features using the dictionary transformation td. 
+        If it doesn't exist, computes them using Thierry's method.
 
      The improved pipeline is composed of 11 steps:
 
@@ -102,9 +102,6 @@ def extract_feats(filename, d, lda_file=None, lda_n=0, ver=True, fx=None):
 
     Original method by Thierry doesn't include steps 5,6,7,8,11.
      """
-    if d != "" and fx is None:
-        fx = load_transform(d)
-    
     # 1.- Beat Synchronous Chroma
     # 2.- L2-Norm
     # 3.- Shingle (PATCH_LEN: 75 x 12)
@@ -113,12 +110,12 @@ def extract_feats(filename, d, lda_file=None, lda_n=0, ver=True, fx=None):
     if feats is None:
         return None
 
-    if d != "":
+    if td is not None:
         # 5.- L2-Norm
         # 6.- Log-Scale
         # 7.- Sparse Coding
         # 8.- Shrinkage
-        H = fx(feats)
+        H = td(feats)
     else:
         H = feats
 
@@ -218,10 +215,14 @@ def main():
 
     # iterate over queries
     logger.info("Starting the binary task...")
+
+    # Get the dictionary transform
+    td = load_transform(args.dictfile)
+
     for triplet in queries:
         # get features
         filenames = map(lambda tid: utils.path_from_tid(maindir, tid), triplet)
-        triplet_feats = map(lambda f: extract_feats(f, args.dictfile, 
+        triplet_feats = map(lambda f: extract_feats(f, td=td, 
                                     lda_file=lda, lda_n=lda_n), filenames)
         if None in triplet_feats:
             continue

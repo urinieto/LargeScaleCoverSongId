@@ -81,6 +81,13 @@ To apply a dictionary of k = 2045:
 This should result in AR = 3026, MAP = 5.51%, as reported in (Humphrey et al.
 2013).
 
+To apply LDA of 200 dimensions:
+
+	./cover_id_train.py path_to_MSD -dictfile models/BasisProjection2_kE2045_actEdot_shkE0x200_anormETrue.pk -lda 
+	models/lda-kE2045-shkE0x200.pk 2
+
+Which should result in a similar result than AR = 1880, MAP = 28.33&, as reported 
+in (Humphrey et al. 2013).
 
 
 Cover Song ID in Test

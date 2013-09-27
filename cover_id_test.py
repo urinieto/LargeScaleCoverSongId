@@ -49,6 +49,7 @@ import pickle
 import numpy as np
 import argparse
 from scipy.spatial import distance
+from multiprocessing import Pool
 import time
 import glob
 
@@ -177,8 +178,8 @@ def compute_codes(track_ids, maindir, d, N, clique_ids, outdir, lda,
         
         utils.save_pickle(codes, out_file)
 
-def score(feats, clique_ids, lda_idx=0):
-    stats = [np.inf] * 5236
+def score(feats, clique_ids, N=5236, lda_idx=0):
+    stats = [np.inf] * N
     
     # For each track id that has a clique id
     logger.info("Computing scores for the MSD...")
@@ -302,10 +303,10 @@ def main():
 
     # Scores
     feats, clique_ids, track_ids = utils.clean_feats(feats, clique_ids, track_ids)
-    stats = score(feats, clique_ids)
+    stats = score(feats, clique_ids, N=len(all_tracks))
 
     # TODO: change file name
-    U.save_pickle(stats, "stats-test-kE2045-LDA50.pk" + os.path.basename(args.dictfile))
+    utils.save_pickle(stats, "stats-test-kE2045-LDA50.pk" + os.path.basename(args.dictfile))
 
     # done
     logger.info('Average rank per track: %.2f, clique: %.2f, MAP: %.2f%%' \

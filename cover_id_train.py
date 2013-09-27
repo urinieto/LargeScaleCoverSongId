@@ -174,7 +174,7 @@ def compute_feats(track_ids, maindir, d, lda_file=None, lda_n=0, codes=None,
 
         # Apply LDA if needed
         if lda_file is not None:
-            H = dan_tools.chromnorm(H.reshape(H.shape[0], 1)).squeeze()
+            #H = dan_tools.chromnorm(H.reshape(H.shape[0], 1)).squeeze()
             # 10.- Dimensionality Reduction
             H = lda_file[lda_n].transform(H)
 
