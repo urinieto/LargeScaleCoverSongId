@@ -98,7 +98,7 @@ def compute_codes_orig_it(track_ids, maindir, clique_ids, start_idx, end_idx):
     return res
 
 def compute_codes_it(track_ids, maindir, d, clique_ids, lda, 
-        start_idx, end_idx):
+        start_idx, end_idx, origcodes=None, pca=None):
     """Computes the features based on Humphrey, Nieto and Bello, 2013.
     Dimensionality reduction using LDA of 50, 100, and 200 components."""
     fx = load_transform(d)
@@ -115,25 +115,31 @@ def compute_codes_it(track_ids, maindir, d, clique_ids, lda,
         codes.append(np.ones((end_idx-start_idx, K)) * np.nan)
 
     for i, tid in enumerate(track_ids[start_idx:end_idx]):
-        path = utils.path_from_tid(maindir, tid)
-        feats = utils.extract_feats(path)
-        if feats == None:
-            continue
-        med = np.median(fx(feats), axis=0)
+        if origcodes is None:
+            path = utils.path_from_tid(maindir, tid)
+            feats = utils.extract_feats(path)
+            if feats == None:
+                continue
+            code = np.median(fx(feats), axis=0)
+        else:
+            code = origcodes[i]
+        if pca is not None:
+            code = pca.transform(code)
         if lda is not None:
             for lda_idx, n_comp in enumerate(lda_components):
-                tmp = lda[lda_idx].transform(med)
+                tmp = lda[lda_idx].transform(code)
                 codes[lda_idx][i] = dan_tools.chromnorm(tmp.reshape(tmp.shape[0], 
                                         1)).squeeze()
         else:
-            codes[0][i] = dan_tools.chromnorm(med.reshape(med.shape[0], 
+            codes[0][i] = dan_tools.chromnorm(code.reshape(code.shape[0], 
                                               1)).squeeze()
         if i % 1000 == 0:
             logger.info("Computed %d of %d track(s)" % (i, end_idx-start_idx))
     res = (codes, track_ids[start_idx:end_idx], clique_ids[start_idx:end_idx])
     return res
 
-def compute_codes(track_ids, maindir, d, N, clique_ids, outdir, lda):
+def compute_codes(track_ids, maindir, d, N, clique_ids, outdir, lda, 
+        origcodesdir=None, pca_file=None, pca_n=0):
     """Computes maximum 10,000 x 10 tracks. N is the index in the MSD:
         e.g. 
             if N = 1: tracks computed: from 100,000 to 199,999
@@ -141,6 +147,11 @@ def compute_codes(track_ids, maindir, d, N, clique_ids, outdir, lda):
     """
     MAX     = 1e5 / 1
     ITER    = 1e4 / 1
+    if pca_file is not None:
+        pca = utils.load_pickle(pca_file)[pca_n]
+    else:
+        pca = None
+
     for it in xrange(10):
         logger.info("Computing %d of 10 iteration" % it)
         start_idx = int(N*MAX + it*ITER)
@@ -149,21 +160,25 @@ def compute_codes(track_ids, maindir, d, N, clique_ids, outdir, lda):
         strN = str(N)
         if N < 10:
             strN = "0" + str(N)
+        out_file = os.path.join(outdir, strN) + str(it) + "-msd-codes.pk"
+        if origcodesdir is None:
+            origcodes = None
+        else:
+            origcodes_file = os.path.join(origcodesdir, strN) + str(it) + \
+                "-msd-codes.pk"
+            #origcodes = utils.load_pickle(origcodes_file)[0][0]
+            origcodes = utils.load_pickle(origcodes_file)[0]
         if d == "":
             codes = compute_codes_orig_it(track_ids, maindir, clique_ids,
                 start_idx, end_idx)
         else:
             codes = compute_codes_it(track_ids, maindir, d, clique_ids, lda,
-                start_idx, end_idx)
-        out_file = os.path.join(outdir, strN) + str(it) + "-msd-codes.pk"
-        f = open(out_file, "w")
-        cPickle.dump(codes, f, protocol=1)
-        f.close()
+                start_idx, end_idx, origcodes=origcodes, pca=pca)
+        
+        utils.save_pickle(codes, out_file)
 
 def score(feats, clique_ids, lda_idx=0):
     stats = [np.inf] * 5236
-    #stats = [np.inf] * 12960
-    #stats = [np.inf]*len(feats)
     
     # For each track id that has a clique id
     logger.info("Computing scores for the MSD...")
@@ -180,14 +195,14 @@ def score(feats, clique_ids, lda_idx=0):
         q += 1
         if q % 400 == 0:
             logger.info('After %d queries: average rank per track: %.2f'
-                ', clique: %.2f, MAP: %.2f' \
+                ', clique: %.2f, MAP: %.2f%%' \
                 % (q, anst.average_rank_per_track(stats),
                     anst.average_rank_per_clique(stats),
                     anst.mean_average_precision(stats) * 100))
 
     return stats
 
-def load_codes(codesdir, lda_idx):
+def load_codes(codesdir, lda_idx, max_files=None):
     code_files = glob.glob(os.path.join(codesdir, "*.pk"))
     if lda_idx == 0:
         n_comp = 50
@@ -195,14 +210,16 @@ def load_codes(codesdir, lda_idx):
         n_comp = 100
     elif lda_idx == 2:
         n_comp = 200
+    elif lda_idx == -1:
+        n_comp = 2045
     feats = np.empty((0,n_comp))
-    #feats = np.empty((0,2045))
     track_ids = []
     clique_ids = []
+    if max_files is not None:
+        code_files = code_files[:max_files]
     for code_file in code_files:
         codes = utils.load_pickle(code_file)
         feats = np.append(feats, codes[0][lda_idx], axis=0)
-        #feats = np.append(feats, codes[0], axis=0)
         track_ids += codes[1]
         clique_ids += list(codes[2])
 
@@ -227,10 +244,18 @@ def main():
                         help="Set of 100,000ths to be computed")
     parser.add_argument("-lda", action="store", default=None, 
                         help="LDA file")
+    parser.add_argument("-pca", nargs=2, metavar=('f.pkl', 'n'), 
+                        default=(None, 0),
+                        help="pca model saved in a pickle file, " \
+                        "use n dimensions")
     parser.add_argument("-codes", action="store", nargs=2, default=[None,0], 
-                        dest="codesdir", metavar=("msd_codes_orig/", "n"),
+                        dest="codesdir", metavar=("msd_codes/", "n"),
                         help="Path to the folder with all the codes and "
                             "version to evaluate")
+    parser.add_argument("-orig_codes", action="store", default=None, 
+                        dest="origcodesdir",
+                        help="Path to the folder with all the codes without "
+                            "dimensionality reduction")
 
     args = parser.parse_args()
     start_time = time.time()
@@ -250,8 +275,14 @@ def main():
     # read codes file
     codesdir = args.codesdir[0]
     if codesdir is not None:
-        feats, track_ids, clique_ids = load_codes(codesdir, 
-                                            lda_idx=int(args.codesdir[1]))
+        if os.path.isfile(codesdir):
+            c = utils.load_pickle(codesdir)
+            feats = c[0]
+            track_ids = c[1]
+            clique_ids = c[2]
+        else:
+            feats, track_ids, clique_ids = load_codes(codesdir, 
+                                                lda_idx=int(args.codesdir[1]))
         logger.info("Codes files read")
         print feats.shape
     else:
@@ -263,7 +294,8 @@ def main():
 
         utils.assert_file(args.dictfile)
         compute_codes(track_ids, maindir, args.dictfile, args.N, clique_ids, 
-            args.outdir, lda_file)
+            args.outdir, lda_file, args.origcodesdir, pca_file=args.pca[0], 
+            pca_n=int(args.pca[1]))
         logger.info("Codes computation done!")
         logger.info("Took %.2f seconds" % (time.time() - start_time))
         sys.exit()
@@ -273,15 +305,13 @@ def main():
     stats = score(feats, clique_ids)
 
     # TODO: change file name
-    f = open("stats-test-kE2045-LDA50.pk" + os.path.basename(args.dictfile), "w")
-    cPickle.dump(stats, f, protocol=1)
-    f.close()
+    U.save_pickle(stats, "stats-test-kE2045-LDA50.pk" + os.path.basename(args.dictfile))
 
     # done
-    logger.info('Average rank per track: %.2f, clique: %.2f, MAP: %.5f' \
+    logger.info('Average rank per track: %.2f, clique: %.2f, MAP: %.2f%%' \
                 % (anst.average_rank_per_track(stats),
                     anst.average_rank_per_clique(stats),
-                    anst.mean_average_precision(stats)))
+                    anst.mean_average_precision(stats) * 100))
     logger.info("Done! Took %.2f seconds" % (time.time() - start_time))
 
 if __name__ == '__main__':

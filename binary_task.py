@@ -102,7 +102,7 @@ def extract_feats(filename, d, lda_file=None, lda_n=0, ver=True, fx=None):
 
     Original method by Thierry doesn't include steps 5,6,7,8,11.
      """
-    if d != "" and fx is not None:
+    if d != "" and fx is None:
         fx = load_transform(d)
     
     # 1.- Beat Synchronous Chroma

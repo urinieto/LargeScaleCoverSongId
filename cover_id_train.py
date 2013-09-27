@@ -95,7 +95,7 @@ PATCH_LEN = WIN*12
 logger = utils.configure_logger()
 
 def compute_feats(track_ids, maindir, d, lda_file=None, lda_n=0, codes=None, 
-        ver=True):
+        ver=True, pca="", pca_n=0):
     """Computes the features using the dictionary d. If it doesn't exist, 
      computes them using Thierry's method.
 
@@ -134,6 +134,10 @@ def compute_feats(track_ids, maindir, d, lda_file=None, lda_n=0, codes=None,
     else:
         n_comp = K 
 
+    if pca != "":
+        pca = utils.load_pickle(pca)
+        pca = pca[pca_n]
+
     final_feats = np.ones((codes.shape[0],n_comp)) * np.nan
     orig_feats = []
     for cnt, tid in enumerate(track_ids):
@@ -165,8 +169,12 @@ def compute_feats(track_ids, maindir, d, lda_file=None, lda_n=0, codes=None,
         if compute_codes:
             codes[cnt] = H.copy()
 
+        if pca != "":
+            H = pca.transform(H)
+
         # Apply LDA if needed
         if lda_file is not None:
+            H = dan_tools.chromnorm(H.reshape(H.shape[0], 1)).squeeze()
             # 10.- Dimensionality Reduction
             H = lda_file[lda_n].transform(H)
 
@@ -214,10 +222,10 @@ def score(feats, clique_ids, lda_idx=0, stats_len=None, ver=True):
         if ver:
             if q % 400 == 0:
                 logger.info('After %d queries: average rank per track: %.2f, '\
-                    'clique: %.2f, MAP: %.5f' \
+                    'clique: %.2f, MAP: %.2f%%' \
                     % (q, anst.average_rank_per_track(stats),
                         anst.average_rank_per_clique(stats),
-                        anst.mean_average_precision(stats)))
+                        anst.mean_average_precision(stats) * 100))
 
     return stats
 
@@ -275,14 +283,15 @@ def main():
     # Compute features if needed
     if args.featfile == "":
         feats = compute_feats(track_ids, maindir, dictfile,
-            lda_file=lda_file, lda_n=int(args.lda[1]), codes=codesfile)
+            lda_file=lda_file, lda_n=int(args.lda[1]), codes=codesfile,
+            pca=args.pca[0], pca_n=int(args.pca[1]))
     else:  
         feats = utils.load_pickle(args.featfile)
 
     # Apply PCA
     pcafile = args.pca[0]
     pcadim = int(args.pca[1])
-    if pcafile != "":
+    if pcafile != "" and False:
         trainedpca = utils.load_pickle(pcafile)
         assert pcadim > 0
         logger.info('trained pca loaded')
