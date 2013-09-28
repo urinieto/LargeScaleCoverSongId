@@ -132,20 +132,30 @@ def compute_codes_it(track_ids, maindir, d, clique_ids, lda,
                 codes[lda_idx][i] = dan_tools.chromnorm(tmp.reshape(tmp.shape[0], 
                                         1)).squeeze()
         else:
-            codes[0][i] = dan_tools.chromnorm(code.reshape(code.shape[0], 
-                                              1)).squeeze()
+            codes[0][i] = code 
         if i % 1000 == 0:
             logger.info("Computed %d of %d track(s)" % (i, end_idx-start_idx))
     res = (codes, track_ids[start_idx:end_idx], clique_ids[start_idx:end_idx])
     return res
 
-def compute_codes(track_ids, maindir, d, N, clique_ids, outdir, lda, 
-        origcodesdir=None, pca_file=None, pca_n=0):
+def compute_codes(args):
     """Computes maximum 10,000 x 10 tracks. N is the index in the MSD:
         e.g. 
             if N = 1: tracks computed: from 100,000 to 199,999
             if N = 5: tracks computed: from 500,000 to 599,999
     """
+
+    track_ids = args["track_ids"]
+    maindir = args["maindir"]
+    d = args["d"]
+    N = args["N"]
+    clique_ids = args["clique_ids"]
+    outdir = args["outdir"]
+    lda = args["lda"]
+    origcodesdir = args["origcodesdir"]
+    pca_file = args["pca_file"]
+    pca_n = args["pca_n"]
+
     MAX     = 1e5 / 1
     ITER    = 1e4 / 1
     if pca_file is not None:
@@ -241,8 +251,9 @@ def main():
                         help="Pickle to the learned dictionary")
     parser.add_argument("-outdir", action="store", default="msd_codes",
                         help="Output directory for the features")
-    parser.add_argument("-N", action="store", type=int, default=0,
-                        help="Set of 100,000ths to be computed")
+    parser.add_argument("-N", action="store", default=10, type=int,
+                        help="Number of processors to use when computing " \
+                        "the codes for 1M tracks,")
     parser.add_argument("-lda", action="store", default=None, 
                         help="LDA file")
     parser.add_argument("-pca", nargs=2, metavar=('f.pkl', 'n'), 
@@ -294,9 +305,29 @@ def main():
             logger.info("LDA file read") 
 
         utils.assert_file(args.dictfile)
-        compute_codes(track_ids, maindir, args.dictfile, args.N, clique_ids, 
-            args.outdir, lda_file, args.origcodesdir, pca_file=args.pca[0], 
-            pca_n=int(args.pca[1]))
+
+        # Prepare Multiprocessing computation
+        input = []
+        N = 10
+        pool = Pool(processes=N)
+        for n in xrange(N):
+            arg = {}
+            arg["track_ids"] = track_ids
+            arg["maindir"] = maindir
+            arg["d"] = args.dictfile
+            arg["N"] = n
+            arg["clique_ids"] = clique_ids
+            arg["outdir"] = args.outdir
+            arg["lda"] = lda_file
+            arg["origcodesdir"] = args.origcodesdir
+            arg["pca_file"] = args.pca[0]
+            arg["pca_n"] = int(args.pca[1])
+            input.append(arg)
+
+        #compute_codes(track_ids, maindir, args.dictfile, args.N, clique_ids, 
+        #    args.outdir, lda_file, args.origcodesdir, pca_file=args.pca[0], 
+        #    pca_n=int(args.pca[1]))
+        pool.map(compute_codes, input)
         logger.info("Codes computation done!")
         logger.info("Took %.2f seconds" % (time.time() - start_time))
         sys.exit()
