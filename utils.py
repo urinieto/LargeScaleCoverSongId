@@ -410,7 +410,7 @@ def fit_LDA_filter(maindir, d, codes_f, N=9000, n=9, pca=None, pca_n=0,
     C = C[0]
 
     # Load the codes from the training set
-    codestrain = load_pickle("codes-shs-train-k2045.pk")
+    codestrain = load_pickle("results/codes-shs-train-k2045.pk")
 
     clique_idx = 0
     label_id = 1000001
@@ -467,70 +467,6 @@ def fit_LDA_filter(maindir, d, codes_f, N=9000, n=9, pca=None, pca_n=0,
 
     # fit LDA and save model
     fit_LDA_from_codes_file(codes_pk, cliques_pk, lda_components, outlda)
-
-
-def lda_chart():
-    import cover_id_train as U
-    
-    codes = load_pickle("lda_tran_codes.pk")
-    cliques = load_pickle("lda_train_clique_id.pk")
-    tracks = load_pickle("lda_train_track_id.pk")
-
-    codes_val = load_pickle("codes_val.pk")
-    cliques_val = load_pickle("cliques_val.pk")
-    tracks_val = load_pickle("tracks_val.pk")
-    
-    codes_train = load_pickle("codes_t.pk")
-    cliques_train = load_pickle("cliques_t.pk")
-    tracks_train = load_pickle("tracks_t.pk")
-
-    codes, cliques, tracks = clean_feats(codes, cliques, tracks)
-    codes_val, cliques_val, tracks_val = clean_feats(codes_val, cliques_val, tracks_val)
-    codes_train, cliques_train, tracks_train = clean_feats(codes_train, cliques_train, tracks_train)
-
-    codes_tot = np.concatenate((codes_val, codes_train), axis=0)
-    cliques_tot = np.concatenate((cliques_val, [-1]*len(codes_train)), axis=0)    
-    tracks_tot = list(tracks_val) + list(tracks_train)
-
-
-    noises = np.arange(0,20000,500)
-    n_comps = [50, 100, 200]
-    maindir = "SHSTrain"
-    d = "dicts/BasisProjection2_kE2045_actEdot_shkE0x200_anormETrue.pk"
-    logger = get_logger()
-    for noise in noises:
-        for n_comp in n_comps:
-            # Fit LDA
-            lda = LDA(n_components=n_comp)
-            lda_codes = np.concatenate((codes_train, codes[13000:noise]), axis=0)
-            lda_cliques = np.concatenate((cliques_train, cliques[13000:noise]), axis=0)
-            lda = [lda.fit(lda_codes, lda_cliques)]
-
-            # Compute features
-            feats_train = U.compute_feats(tracks_train, maindir, d, lda_file=lda, 
-                codes=codes_train, ver=False)
-            stats_train = U.score(feats_train, cliques_train, ver=False)
-            feats_tot = U.compute_feats(tracks_tot, maindir, d, lda_file=lda, 
-                codes=codes_tot, ver=False)
-            stats_val = U.score(feats_tot, cliques_tot, stats_len=len(cliques_val),
-                ver=False)
-
-            # Compute scores
-            ar_train = anst.average_rank_per_track(stats_train)
-            map_train = anst.mean_average_precision(stats_train, n=len(feats_train))
-            ar_val = anst.average_rank_per_track(stats_val)
-            map_val = anst.mean_average_precision(stats_val, n=len(feats_tot))
-
-            # Print outs
-            str_train = "lda:%d, dataset:%s, noise:%d, avg rank:%.2f, MAP:%.4f\n" % \
-                (n_comp, "train", noise, ar_train, map_train)
-            str_val = "lda:%d, dataset:%s, noise:%d, avg rank:%.2f, MAP:%.4f\n" % \
-                (n_comp, "val", noise, ar_val, map_val)
-            logger.info(str_train + str_val)
-
-            f = open("lda_chart.txt", "a")
-            f.write(str_train + str_val)
-            f.close()
 
 def compute_training_features(N=50000):
     """Computes N features for training purposes."""

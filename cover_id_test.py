@@ -308,9 +308,8 @@ def main():
 
         # Prepare Multiprocessing computation
         input = []
-        N = 10
-        pool = Pool(processes=N)
-        for n in xrange(N):
+        pool = Pool(processes=args.N)
+        for n in xrange(args.N):
             arg = {}
             arg["track_ids"] = track_ids
             arg["maindir"] = maindir
@@ -324,10 +323,10 @@ def main():
             arg["pca_n"] = int(args.pca[1])
             input.append(arg)
 
-        #compute_codes(track_ids, maindir, args.dictfile, args.N, clique_ids, 
-        #    args.outdir, lda_file, args.origcodesdir, pca_file=args.pca[0], 
-        #    pca_n=int(args.pca[1]))
+        # Start computing the codes
         pool.map(compute_codes, input)
+
+        # Done!
         logger.info("Codes computation done!")
         logger.info("Took %.2f seconds" % (time.time() - start_time))
         sys.exit()

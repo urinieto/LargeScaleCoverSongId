@@ -95,15 +95,12 @@ Cover Song ID in Test
 
 This task compares the 5236 tracks from the test SHS dataset against all the
 1,000,000 tracks from the MSD. Since computing the features for the entire MSD
-takes a long time, the code is written to be run in 10 different threads, so that 
-the work can be split in 10 different processors.
+takes a long time, the code is written to be run in N different threads, so that 
+the work can be split in N different processors.
 
-To run the n-th process, type:
+To compute all the 1,000,000 codes with 10 processors, type:
 
-	./cover_id_test.py path_to_MSD -dictfile models/BasisProjection2_kE2045_actEdot_shkE0x200_anormETrue.pk -lda models/lda-kE2045-shkE0x200.pk -N n -outdir msd_feats
-
-Note that you will have to run 10 different processes in order to get all the
-features.
+	./cover_id_test.py path_to_MSD -dictfile models/BasisProjection2_kE2045_actEdot_shkE0x200_anormETrue.pk -lda models/lda-kE2045-shkE0x200.pk -outdir msd_feats -N 10
 
 Once all the features are computed inside a dir (e.g. `msd_feats`), we can
 compute the score by:
