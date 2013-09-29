@@ -86,7 +86,7 @@ To apply LDA of 200 dimensions:
 	./cover_id_train.py path_to_MSD -dictfile models/BasisProjection2_kE2045_actEdot_shkE0x200_anormETrue.pk -lda 
 	models/lda-kE2045-shkE0x200.pk 2
 
-Which should result in a similar result than AR = 1880, MAP = 28.33&, as reported 
+Which should result in a similar result than AR = 1880, MAP = 28.33%, as reported 
 in (Humphrey et al. 2013).
 
 
@@ -140,7 +140,9 @@ http://wiki.scipy.org/PyLab
 Scikit-Learn:
 http://scikit-learn.org/stable/
 
-And as much RAM memory as possible. At least 16GB is recommended.
+Multi-core processor. At least 10 units are recommended.
+
+And as much RAM as possible. 16GB is recommended.
 
 
 References

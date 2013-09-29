@@ -177,8 +177,8 @@ def compute_codes(args):
         else:
             origcodes_file = os.path.join(origcodesdir, strN) + str(it) + \
                 "-msd-codes.pk"
-            #origcodes = utils.load_pickle(origcodes_file)[0][0]
-            origcodes = utils.load_pickle(origcodes_file)[0]
+            origcodes = utils.load_pickle(origcodes_file)[0][0]
+            #origcodes = utils.load_pickle(origcodes_file)[0]
         if d == "":
             codes = compute_codes_orig_it(track_ids, maindir, clique_ids,
                 start_idx, end_idx)
@@ -322,6 +322,8 @@ def main():
             arg["pca_file"] = args.pca[0]
             arg["pca_n"] = int(args.pca[1])
             input.append(arg)
+
+        #compute_codes(input[0])
 
         # Start computing the codes
         pool.map(compute_codes, input)

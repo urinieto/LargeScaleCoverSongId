@@ -46,13 +46,14 @@ import logging
 import numpy as np
 import os
 import pylab as plt
-import dan_tools
 from sklearn.lda import LDA
 from sklearn.decomposition import PCA
+import time
 
 # local files
 import analyze_stats as anst
 from transforms import load_transform
+import dan_tools
 
 ### Logging methods
 def configure_logger():
@@ -373,16 +374,32 @@ def fit_LDA_from_codes_file(codes_file, clique_idx, lda_components=[50,100,200],
     codes = C
 
     # Remove nans
-    nan_idx = np.unique(np.where(np.isnan(codes))[0])
+    nan_idx = np.where(np.isnan(codes))[0]
     codes = np.delete(codes, nan_idx, axis=0)
     clique_idx = np.delete(clique_idx, nan_idx, axis=0)
     print codes.shape
 
+    # Remove infs
+    inf_idx = np.where(np.isinf(codes))[0]
+    codes = np.delete(codes, inf_idx, axis=0)
+    clique_idx = np.delete(clique_idx, inf_idx, axis=0)
+    print codes.shape
+
+
+    print "LDA components: ", lda_components
+    #return codes, clique_idx
+
     res = []
-    for c in lda_components:
+    k = 0
+    while k < len(lda_components):
+        c = lda_components[k]
         lda = LDA(n_components=c)
-        lda.fit(codes, clique_idx)
-        res.append(lda)
+        try:
+            lda.fit(codes, clique_idx)
+            res.append(lda)
+            k += 1
+        except:
+            print "LDA error, trying again"
     save_pickle(res, outlda)
 
 
@@ -465,6 +482,8 @@ def fit_LDA_filter(maindir, d, codes_f, N=9000, n=9, pca=None, pca_n=0,
     save_pickle(codes, codes_pk)
     save_pickle(labels, cliques_pk)
 
+    time.sleep(3)
+
     # fit LDA and save model
     fit_LDA_from_codes_file(codes_pk, cliques_pk, lda_components, outlda)
 
@@ -504,7 +523,7 @@ def compute_training_features(N=50000):
 
     save_pickle(feats, "feats_training_NE%d_kE%d.pk" % (N, k))
 
-def compute_models():
+def compute_models(compute_pca=True):
     """Computes the different models for the MSD."""
 
     logger = configure_logger()
@@ -524,9 +543,10 @@ def compute_models():
     for norm in norms:
         out_pca_file = "models/PCAs_mE%d_normE%r_kE%d.pk" % \
             (M, norm, K)
-        fit_PCA(maindir, d, origcodes_f="msd_codes_k2045", outpca=out_pca_file, 
+        if compute_pca:
+            fit_PCA(maindir, d, origcodes_f="msd_codes_k2045", outpca=out_pca_file, 
                 N=M, norm=norm, pca_components=pca_dims)
-        pca_files.append(pca_files)
+        pca_files.append(out_pca_file)
 
     # Append None to not apply PCA in one of the LDA models
     pca_files.append(None)
@@ -540,20 +560,22 @@ def compute_models():
     for pca_file in pca_files:
         for N in Ns:
             for n in ns:
-                for norm in norms:
-                    if pca_file is None:
+                if pca_file is None:
+                    for norm in norms:
                         out_lda_file = "models/LDAs_NE%d_nE%d_mE%d_normE%r_kE%d.pk" % \
                             (N, n, M, norm, K)
                         fit_LDA_filter(maindir, d, "msd_codes_k2045", N=N, n=n, 
                             norm=norm, outlda=out_lda_file, lda_components=lda_dims)
-                    else:
-                        for i in xrange(len(pca_dims)):
-                            pca_dim = pca_dims[i]
-                            out_lda_file = "models/LDAs_pcaE%d_NE%d_nE%d_mE%d_normE%r_kE%d.pk" % \
-                                (N, pca_dim, n, M, norm, K)
-                            fit_LDA_filter(maindir, d, "msd_codes_k2045", N=N, 
-                                n=n, norm=norm, pca=pca_file, pca_n=i, 
-                                outlda=out_lda_file, lda_components=lda_dims)
+                else:
+                    norm = pca_file[pca_file.find("norm") + len("norm") + 1:].split("_")[0]
+                    norm = norm == "True"
+                    for i in xrange(len(pca_dims)):
+                        pca_dim = pca_dims[i]
+                        out_lda_file = "models/LDAs_pcaE%d_NE%d_nE%d_mE%d_normE%r_kE%d.pk" % \
+                            (pca_dim, N, n, M, norm, K)
+                        fit_LDA_filter(maindir, d, "msd_codes_k2045", N=N, 
+                            n=n, norm=norm, pca=pca_file, pca_n=i, 
+                            outlda=out_lda_file, lda_components=lda_dims)
 
                     
 
