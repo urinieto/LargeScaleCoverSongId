@@ -49,6 +49,7 @@ import pylab as plt
 from sklearn.lda import LDA
 from sklearn.decomposition import PCA
 import time
+import subprocess
 
 # local files
 import analyze_stats as anst
@@ -550,10 +551,13 @@ def compute_models(compute_pca=True):
 
     # Append None to not apply PCA in one of the LDA models
     pca_files.append(None)
+    pca_files = [None]
 
     # LDA settings
-    Ns = [3000, 10000, 100000] # Number of tracks from training set + noise
-    ns = [-1, 5, 10, 15] # Filtering: number of tracks per clique (-1: no filter)
+    #Ns = [3000, 10000, 100000] # Number of tracks from training set + noise
+    Ns = [100000] # Number of tracks from training set + noise
+    #ns = [-1, 5, 10, 15] # Filtering: number of tracks per clique (-1: no filter)
+    ns = [15] # Filtering: number of tracks per clique (-1: no filter)
     lda_dims = [50, 100, 200]
 
     # Compute the LDA models
@@ -567,8 +571,7 @@ def compute_models(compute_pca=True):
                         fit_LDA_filter(maindir, d, "msd_codes_k2045", N=N, n=n, 
                             norm=norm, outlda=out_lda_file, lda_components=lda_dims)
                 else:
-                    norm = pca_file[pca_file.find("norm") + len("norm") + 1:].split("_")[0]
-                    norm = norm == "True"
+                    norm = get_param_from_filename(pca_file, "normE", param_type="bool")
                     for i in xrange(len(pca_dims)):
                         pca_dim = pca_dims[i]
                         out_lda_file = "models/LDAs_pcaE%d_NE%d_nE%d_mE%d_normE%r_kE%d.pk" % \
@@ -577,13 +580,106 @@ def compute_models(compute_pca=True):
                             n=n, norm=norm, pca=pca_file, pca_n=i, 
                             outlda=out_lda_file, lda_components=lda_dims)
 
-                    
+
+def eval_models(outfile="results/eval_models.txt"):
+    # Read PCA files
+    basedir = "/Volumes/Audio/LargeScaleCoverID/models/"
+    pca_files = glob.glob(os.path.join(basedir, "PCAs_*"))
+    pca_files.append(None) # To not use PCA
+
+    # PCA dimensions per file
+    pca_dims = np.asarray([50, 100, 200, 500, 1000])
+
+    # Read LDA files
+    lda_files = glob.glob(os.path.join(basedir, "LDAs_*"))
+
+    # LDA dimensions per file
+    lda_dims = np.asarray([50, 100, 200])
+
+    # Original codes with k=2045
+    origcodes = "msd_codes_k2045"
+    k = 2045
+    d = "models/BasisProjection2_kE2045_actEdot_shkE0x200_anormETrue.pk"
+
+    # Python script to compute codes and scores
+    covertest = "./cover_id_test.py"
+
+    # Eval all combinations of LDA/PCA
+    for lda_file in lda_files:
+        print "Computing", lda_file
+        pca_dim = get_param_from_filename(lda_file, "pcaE", "int")
+        # Get parameters for saving results
+        if pca_dim is None:
+            m = -1
+        else:
+            pca_dim = get_param_from_filename(lda_file, "pcaE", "int")
+            m = get_param_from_filename(lda_file, "mE", "int")
+            pca_idx = np.argwhere(pca_dims == pca_dim)[0][0]
+        n = get_param_from_filename(lda_file, "nE", "int")
+        N = get_param_from_filename(lda_file, "NE", "int")
+        norm = get_param_from_filename(lda_file, "normE", "bool")
+        if norm:
+            norm = "-norm"
+            pca_file = pca_files[1]
+        else:
+            norm = ""
+            pca_file = pca_files[0]
+
+        # Set up codes computation
+        outdir = "msd_codes_" + os.path.basename(lda_file).strip(".pk")
+
+        if pca_dim is None:
+            cmd = "%s -orig_codes %s -lda %s -outdir " \
+                "%s -dictfile %s %s MSD" \
+                % (covertest, origcodes, lda_file, outdir, d, norm)
+        else:
+            cmd = "%s -orig_codes %s -lda %s -outdir " \
+                "%s -dictfile %s -pca %s %d %s MSD" \
+                % (covertest, origcodes, lda_file, outdir, d, pca_file, 
+                    pca_idx, norm)
+
+        print cmd
+        # Compute codes
+        subprocess.call(cmd.split())
+
+        # Compute scores
+        for lda_dim in lda_dims:
+            lda_idx = np.argwhere(lda_dims == lda_dim)[0][0]
+            cmd = "%s -codes %s %d MSD" \
+                % (covertest, outdir, lda_idx)
+            print cmd
+            subprocess.call(cmd.split(" "))
+
+            # Store temp results
+            stats = load_pickle("stats.pk")
+
+            # Get results
+            AR = anst.average_rank_per_track(stats)
+            MAP = anst.mean_average_precision(stats) * 100
+            Pk1 = anst.average_precision_at_k(stats, 1) * 100
+            Pk10 = anst.average_precision_at_k(stats, 10) * 100
+            Pk100 = anst.average_precision_at_k(stats, 100) * 100
+
+            # Store final results
+            f = open(outfile, "a")
+            result = "%d\t%r\t%d\t%d\t%d\t%d\t%r\t" % \
+                (k, pca_dim, m, lda_dim, n, N, norm)
+            result += "%d\t%.2f\t%.2f\t%.2f\t%.2f\n" % \
+                (AR, MAP, Pk1, Pk10, Pk100)
+            f.write(result)
+            f.close()
 
 
 
-
-
-
+def get_param_from_filename(filename, param_key, param_type="int"):
+    if filename.find(param_key) == -1:
+        return None
+    param = filename[filename.find(param_key) + len(param_key):].split("_")[0]
+    if param_type == "int":
+        param = int(param)
+    elif param_type == "bool":
+        param = param == "True"
+    return param
 
 
 

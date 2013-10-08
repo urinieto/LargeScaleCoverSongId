@@ -54,7 +54,6 @@ import time
 import glob
 
 # local stuff
-import pca
 import hdf5_getters as GETTERS
 import dan_tools
 import time
@@ -70,6 +69,10 @@ PATCH_LEN = WIN*12
 
 # Set up logger
 logger = utils.configure_logger()
+
+# Global models
+lda = None
+pca = None
 
 def compute_codes_orig_it(track_ids, maindir, clique_ids, start_idx, end_idx):
     """Computes the original features, based on Thierry and Ellis, 2012.
@@ -98,8 +101,8 @@ def compute_codes_orig_it(track_ids, maindir, clique_ids, start_idx, end_idx):
     res = (codes, track_ids[start_idx:end_idx], clique_ids[start_idx:end_idx])
     return res
 
-def compute_codes_it(track_ids, maindir, d, clique_ids, lda, 
-        start_idx, end_idx, origcodes=None, pca=None):
+def compute_codes_it(track_ids, maindir, d, clique_ids, 
+        start_idx, end_idx, origcodes=None, norm=False):
     """Computes the features based on Humphrey, Nieto and Bello, 2013.
     Dimensionality reduction using LDA of 50, 100, and 200 components."""
     fx = load_transform(d)
@@ -124,6 +127,9 @@ def compute_codes_it(track_ids, maindir, d, clique_ids, lda,
             code = np.median(fx(feats), axis=0)
         else:
             code = origcodes[i]
+        if norm:
+            code = dan_tools.chromnorm(code.reshape(code.shape[0], 
+                                        1)).squeeze()
         if pca is not None:
             code = pca.transform(code)
         if lda is not None:
@@ -151,17 +157,12 @@ def compute_codes(args):
     N = args["N"]
     clique_ids = args["clique_ids"]
     outdir = args["outdir"]
-    lda = args["lda"]
     origcodesdir = args["origcodesdir"]
-    pca_file = args["pca_file"]
     pca_n = args["pca_n"]
+    norm = args["norm"]
 
     MAX     = 1e5 / 1
     ITER    = 1e4 / 1
-    if pca_file is not None:
-        pca = utils.load_pickle(pca_file)[pca_n]
-    else:
-        pca = None
 
     for it in xrange(10):
         logger.info("Computing %d of 10 iteration" % it)
@@ -183,8 +184,8 @@ def compute_codes(args):
             codes = compute_codes_orig_it(track_ids, maindir, clique_ids,
                 start_idx, end_idx)
         else:
-            codes = compute_codes_it(track_ids, maindir, d, clique_ids, lda,
-                start_idx, end_idx, origcodes=origcodes, pca=pca)
+            codes = compute_codes_it(track_ids, maindir, d, clique_ids,
+                start_idx, end_idx, origcodes=origcodes, norm=norm)
         
         utils.save_pickle(codes, out_file)
 
@@ -268,11 +269,16 @@ def main():
                         dest="origcodesdir",
                         help="Path to the folder with all the codes without "
                             "dimensionality reduction")
+    parser.add_argument("-norm", action="store_true", dest="norm", default=False, 
+                        help="Normalize before LDA/PCA or not")
 
     args = parser.parse_args()
     start_time = time.time()
     maindir = args.msd_dir
     shsf = "SHS/shs_dataset_test.txt"
+
+    global lda
+    global pca
 
     # sanity cheks
     utils.assert_file(maindir)
@@ -298,11 +304,14 @@ def main():
         logger.info("Codes files read")
         print feats.shape
     else:
+        # Read PCA file
+        if args.pca[0] is not None:
+            pca = utils.load_pickle(args.pca[0])[int(args.pca[1])]
+
         # read LDA file
         lda_file = args.lda
         if lda_file is not None:
-            lda_file = utils.load_pickle(lda_file)
-            logger.info("LDA file read") 
+            lda = utils.load_pickle(lda_file)
 
         utils.assert_file(args.dictfile)
 
@@ -317,13 +326,10 @@ def main():
             arg["N"] = n
             arg["clique_ids"] = clique_ids
             arg["outdir"] = args.outdir
-            arg["lda"] = lda_file
             arg["origcodesdir"] = args.origcodesdir
-            arg["pca_file"] = args.pca[0]
             arg["pca_n"] = int(args.pca[1])
+            arg["norm"] = args.norm
             input.append(arg)
-
-        #compute_codes(input[0])
 
         # Start computing the codes
         pool.map(compute_codes, input)
@@ -338,7 +344,7 @@ def main():
     stats = score(feats, clique_ids, N=len(all_tracks))
 
     # TODO: change file name
-    utils.save_pickle(stats, "stats-test-kE2045-LDA50.pk" + os.path.basename(args.dictfile))
+    utils.save_pickle(stats, "stats.pk")
 
     # done
     logger.info('Average rank per track: %.2f, clique: %.2f, MAP: %.2f%%' \
